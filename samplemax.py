@@ -2,9 +2,10 @@
 # which were drawn IID from a distribution.
 
 import load_data
+import scipy.special
 
-def compute_sample_maxes():
-    data = load_data.from_file()
+def compute_sample_maxes(data_name = "imdb", with_replacement = False):
+    data = load_data.from_file(data_name)
 
     sample_maxes = {}
     for data_size in data:
@@ -12,10 +13,13 @@ def compute_sample_maxes():
             sample_maxes[data_size] = {}
         for classifier in data[data_size]:
 
-            sample_maxes[data_size][classifier] = sample_max(data[data_size][classifier])
+            sample_maxes[data_size][classifier] = sample_max(data[data_size][classifier], with_replacement)
+
     return sample_maxes
-            
-def sample_max(cur_data):
+
+
+# this implementation assumes sampling with replacement for computing the empirical cdf
+def sample_max(cur_data, with_replacement):
 
     cur_data.sort()
     N = len(cur_data)
@@ -24,7 +28,11 @@ def sample_max(cur_data):
         # the CDF of the max
         F_Y_of_y = []
         for i in range(1,N+1):
-            F_Y_of_y.append((i/N)**n)
+
+            if with_replacement:
+                F_Y_of_y.append(cdf_with_replacement(i,n,N))
+            else:
+                F_Y_of_y.append(cdf_without_replacement(i,n,N))
 
         f_Y_of_y = []
         cur_cdf_val = 0
@@ -42,6 +50,13 @@ def sample_max(cur_data):
             cur_expected += cur_data[i] * pdfs[n][i]
         expected_max_cond_n.append(cur_expected)
     return expected_max_cond_n
+
+def cdf_with_replacement(i,n,N):
+    return (i/N)**n
+
+def cdf_without_replacement(i,n,N):
+    
+    return scipy.special.comb(i,n) / scipy.special.comb(N,n)
 
 if __name__ == '__main__':
     compute_sample_maxes()
