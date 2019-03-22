@@ -29,7 +29,7 @@ if __name__ == '__main__':
     metrics = [json.load(open(f, 'r')) for f in metric_files]
     configs = [json.load(open(f, 'r')) for f in config_files]
     master = list(zip(configs, metrics))
-    import ipdb; ipdb.set_trace()
+
     master_dicts = [dict(ChainMap(*item)) for item in master]
 
     df = pd.io.json.json_normalize(master_dicts)
@@ -37,3 +37,4 @@ if __name__ == '__main__':
     output_file = os.path.join(experiment_dir, "results.tsv")
     df.to_csv(output_file, sep='\t')
     print("results written to {}".format(output_file))
+    print(f"total experiments: {df.shape[0]}")
