@@ -333,6 +333,7 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER) = {
          "type": "adam"
       },
       "patience": 5,
-      "validation_metric": "+accuracy"
+      "validation_metric": "+accuracy",
+      "num_serialized_models_to_keep": 1
    }
 }

@@ -11,7 +11,7 @@ BOW_LINEAR = {
         "THROTTLE": None,
         "EMBEDDING": "BOW_COUNTS",
         "ENCODER": None,
-        "LEARNING_RATE": RandomSearch.random_loguniform(1, 1000),
+        "LEARNING_RATE": RandomSearch.random_loguniform(1e-5, 1e-1, 10000),
         "DROPOUT": RandomSearch.random_integer(0, 5),
         "BATCH_SIZE": 32,
 }
@@ -23,8 +23,8 @@ CLASSIFIER_SEARCH = {
         "SEED": RandomSearch.random_integer(0, 100),
         "DATA_DIR": DATA_DIR,
         "THROTTLE": None,
-        "EMBEDDING": "RANDOM",
-        "ENCODER": RandomSearch.random_choice("CNN", "LSTM", "AVERAGE"),
+        "EMBEDDING": RandomSearch.random_choice("BOW_COUNTS", "RANDOM", "RANDOM", "RANDOM"),
+        "ENCODER": RandomSearch.random_choice("LSTM", "CNN", "AVERAGE"),
         "HIDDEN_SIZE": RandomSearch.random_integer(64, 512),
         "NUM_ENCODER_LAYERS": RandomSearch.random_integer(1, 3),
         "MAX_FILTER_SIZE": RandomSearch.random_integer(5, 10),
@@ -32,7 +32,7 @@ CLASSIFIER_SEARCH = {
         "AGGREGATIONS": RandomSearch.random_choice("final_state", "maxpool", "meanpool", "attention"),
         "LEARNING_RATE": RandomSearch.random_loguniform(1e-5, 1e-1, 10000),
         "DROPOUT": RandomSearch.random_integer(0, 5),
-        "BATCH_SIZE": 32,
+        "BATCH_SIZE": 32
 }
 
 

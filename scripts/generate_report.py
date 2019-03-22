@@ -22,19 +22,24 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     experiment_dir = os.path.abspath(args.logdir)
-    metric_files = glob.glob(experiment_dir + '/run_*/trial/metrics.json')
-    config_files = glob.glob(experiment_dir + '/run_*/trial/config.json')
-    if not metric_files or not config_files:
-        raise Exception("could not find files in experiment directory {}".format(experiment_dir))
-    metrics = [json.load(open(f, 'r')) for f in metric_files]
-    configs = [json.load(open(f, 'r')) for f in config_files]
-    master = list(zip(configs, metrics))
+    dirs = glob.glob(experiment_dir + '/run_*/trial/')
+
+    master = []
+    for dir in dirs:
+        try:
+            metric = json.load(open(os.path.join(dir, "metrics.json"), 'r'))
+            config = json.load(open(os.path.join(dir, "config.json"), 'r'))
+            master.append((metric, config))
+        except:
+            continue
+
 
     master_dicts = [dict(ChainMap(*item)) for item in master]
 
     df = pd.io.json.json_normalize(master_dicts)
-    df.columns = df.columns.map(lambda x: x.split(".")[-1])
+    df['model.encoder.architecture.type'] = df['model.encoder.architecture.type'].fillna("linear")
     output_file = os.path.join(experiment_dir, "results.tsv")
     df.to_csv(output_file, sep='\t')
     print("results written to {}".format(output_file))
     print(f"total experiments: {df.shape[0]}")
+    print(f"best models:\n{df.best_validation_accuracy.max()}")

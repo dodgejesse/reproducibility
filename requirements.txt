@@ -1,0 +1,7 @@
+allennlp
+pandas
+numpy
+ray
+psutil
+hyperopt
+psutil
