@@ -15,12 +15,12 @@ class RandomSearch:
         return lambda: np.random.choice(choices)
 
     @staticmethod
-    def random_integer(low, high):
-        return lambda: int(np.random.randint(low, high))
+    def random_integer(low, high, scale=1):
+        return lambda: int(np.random.randint(low, high)) * scale
 
     @staticmethod
-    def random_loguniform(low, high):
-        return lambda: int(np.log(hyperopt.pyll.stochastic.sample(hp.loguniform('a', low, high))))
+    def random_loguniform(low, high, scale=1):
+        return lambda: int(np.log(hyperopt.pyll.stochastic.sample(hp.loguniform('a', low, high))) * scale)
 
     @staticmethod
     def random_subset(*args):
@@ -31,8 +31,8 @@ class RandomSearch:
         return func
 
     @staticmethod
-    def random_uniform(low, high):
-        return lambda: np.random.uniform(low, high)
+    def random_uniform(low, high, scale=1):
+        return lambda: np.random.uniform(low, high) * scale
 
 
 class HyperparameterSearch:

@@ -1,10 +1,10 @@
 
 from environments.random_search import RandomSearch
 
-DATA_DIR = "s3://suching-dev/final-datasets/imdb/"
+DATA_DIR = "/home/suching/reproducibility/data/sst/"
 
 BOW_LINEAR = {
-        "CUDA_DEVICE": -1,
+        "CUDA_DEVICE": 0,
         "USE_SPACY_TOKENIZER": 0,
         "SEED": RandomSearch.random_integer(0, 100),
         "DATA_DIR": DATA_DIR,
@@ -15,6 +15,26 @@ BOW_LINEAR = {
         "DROPOUT": RandomSearch.random_integer(0, 5),
         "BATCH_SIZE": 32,
 }
+
+
+CLASSIFIER_SEARCH = {
+        "CUDA_DEVICE": 0,
+        "USE_SPACY_TOKENIZER": 0,
+        "SEED": RandomSearch.random_integer(0, 100),
+        "DATA_DIR": DATA_DIR,
+        "THROTTLE": None,
+        "EMBEDDING": "RANDOM",
+        "ENCODER": RandomSearch.random_choice("CNN", "LSTM", "AVERAGE"),
+        "HIDDEN_SIZE": RandomSearch.random_integer(64, 512),
+        "NUM_ENCODER_LAYERS": RandomSearch.random_integer(1, 3),
+        "MAX_FILTER_SIZE": RandomSearch.random_integer(5, 10),
+        "NUM_FILTERS": RandomSearch.random_integer(64, 512),
+        "AGGREGATIONS": RandomSearch.random_choice("final_state", "maxpool", "meanpool", "attention"),
+        "LEARNING_RATE": RandomSearch.random_loguniform(1e-5, 1e-1, 10000),
+        "DROPOUT": RandomSearch.random_integer(0, 5),
+        "BATCH_SIZE": 32,
+}
+
 
 
 ELMO_LSTM = {
@@ -138,5 +158,6 @@ ENVIRONMENTS = {
         "CHAR_CNN": CHAR_CNN,
         "CHAR_LSTM": CHAR_LSTM,
         "RANDOM": RANDOM,
-        "BOW_LINEAR": BOW_LINEAR
+        "BOW_LINEAR": BOW_LINEAR,
+        "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH
 }
