@@ -42,4 +42,4 @@ if __name__ == '__main__':
     df.to_csv(output_file, sep='\t')
     print("results written to {}".format(output_file))
     print(f"total experiments: {df.shape[0]}")
-    print(f"best models:\n{df.best_validation_accuracy.max()}")
+    print(f"best models:\n{df.groupby('model.encoder.architecture.type').best_validation_accuracy.max()}")
