@@ -4,7 +4,8 @@
 import load_data
 import scipy.special
 
-def compute_sample_maxes(data_name = "imdb", with_replacement = False):
+def compute_sample_maxes(data_name = "sst_fiveway", with_replacement = True):
+
     data = load_data.from_file(data_name)
 
     sample_maxes = {}
@@ -14,7 +15,7 @@ def compute_sample_maxes(data_name = "imdb", with_replacement = False):
         for classifier in data[data_size]:
 
             sample_maxes[data_size][classifier] = sample_max(data[data_size][classifier], with_replacement)
-
+    #import pdb; pdb.set_trace()
     return sample_maxes
 
 
@@ -59,5 +60,20 @@ def cdf_without_replacement(i,n,N):
     return scipy.special.comb(i,n) / scipy.special.comb(N,n)
 
 if __name__ == '__main__':
-    compute_sample_maxes()
+    s_maxes = compute_sample_maxes()
+
     
+
+    for data_size in s_maxes: 
+        accuracies = {}
+        for classifier in s_maxes[data_size]:
+            print(classifier)
+            for i in range(15):
+                if i not in  accuracies:
+                    accuracies[i] = []
+                accuracies[i].append(s_maxes[data_size][classifier][i])
+        for i in range(15): print(accuracies[i])
+
+    import pdb; pdb.set_trace()
+    
+    print(s_maxes)
