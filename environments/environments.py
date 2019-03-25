@@ -22,7 +22,7 @@ CLASSIFIER_SEARCH = {
         "USE_SPACY_TOKENIZER": 0,
         "SEED": RandomSearch.random_integer(0, 100),
         "DATA_DIR": DATA_DIR,
-        "THROTTLE": None,
+        "THROTTLE": 200,
         "EMBEDDING": RandomSearch.random_choice("BOW_COUNTS", "RANDOM", "RANDOM", "RANDOM"),
         "ENCODER": RandomSearch.random_choice("LSTM", "CNN", "AVERAGE"),
         "HIDDEN_SIZE": RandomSearch.random_integer(64, 512),
