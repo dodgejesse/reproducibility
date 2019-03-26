@@ -20,7 +20,7 @@ class RandomSearch:
 
     @staticmethod
     def random_loguniform(low, high, scale=1):
-        return lambda: int(np.log(hyperopt.pyll.stochastic.sample(hp.loguniform('a', low, high))) * scale)
+        return lambda: str(np.exp(np.random.uniform(np.log(1e-6), np.log(1e-1))))
 
     @staticmethod
     def random_subset(*args):

@@ -12,10 +12,10 @@ local THROTTLE = std.extVar("THROTTLE");
 local USE_SPACY_TOKENIZER = std.parseInt(std.extVar("USE_SPACY_TOKENIZER"));
 
 // learning rate of overall model.
-local LEARNING_RATE = std.parseInt(std.extVar("LEARNING_RATE")) / 10000;
+local LEARNING_RATE = std.extVar("LEARNING_RATE");
 
 // dropout applied after pooling
-local DROPOUT = std.parseInt(std.extVar("DROPOUT")) / 10;
+local DROPOUT = std.parseInt(std.extVar("DROPOUT"));
 
 local BATCH_SIZE = std.parseInt(std.extVar("BATCH_SIZE"));
 
@@ -140,12 +140,12 @@ local GLOVE_FIELDS = {
   },
   "glove_embedder": {
     "tokens": {
-        "embedding_dim": 300,
+        "embedding_dim": 50,
         "trainable": true,
-        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.840B.300d.txt.gz",
+        "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
     }
   },
-  "embedding_dim": 300
+  "embedding_dim": 50
 };
 
 local W2V_FIELDS = {
