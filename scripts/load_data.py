@@ -1,13 +1,15 @@
 
 
-def from_file(data_name = "imdb"):
+def from_file(data_name = "sst_fiveway"):
     if "imdb" in data_name:
         keys_and_indices = imdb_keys_and_indices()
     elif "ag_news" in data_name:
         keys_and_indices = ag_keys_and_indices()
+    elif "sst" in data_name:
+        keys_and_indices = sst_keys_and_indices()
     else:
         assert False, "data_name should be one of imbd, ag_news"
-    filename = "/home/jessedd/data/reprocudibility/{}_search.csv".format(data_name)
+    filename = "/home/jessedd/data/reprocudibility/{}_search.{}".format(data_name, keys_and_indices["sep_name"])
 
 
         
@@ -22,26 +24,35 @@ def process_lines(lines, keys_and_indices):
     possible_values = {}
     data = {}
     for line in lines:
-        if "Task_Name" in line:
+        if "Task_Name" in line or "best_epoch" in line:
+            first_line = line
             continue
+        
         update_possible_values(line, possible_values, keys_and_indices)
         extract_data(line, data, keys_and_indices)
 
     print("")
         
-    if True:
+    if False:
         print("num_experiments")
         print_num_experiments(data)
         
-        for k in possible_values:
-            print(k, possible_values[k])
-        print("")
+        #for k in possible_values:
+        #    print(k, possible_values[k])
+        #print("")
+        import pdb; pdb.set_trace()
+        #print("possible learning rates:")
+        #for classifier in data[32]:
+            #lrs = []
+            #for example in data[32][classifier]:
+                
 
     return data
         
 
 def extract_data(line, data, keys_and_indices):
-    split_line = line.split(",")
+    #import pdb; pdb.set_trace()
+    split_line = line.split(keys_and_indices["sep"])
     cur_data_size = int(split_line[keys_and_indices["data_size"]])
     cur_classifier = split_line[keys_and_indices["classifier"]]
 
@@ -62,13 +73,15 @@ def extract_data(line, data, keys_and_indices):
         
 
 def update_possible_values(line, possible_values, keys_and_indices):
-    split_line = line.split(",")
-    for key_name in keys_and_indices:
-        if key_name == "accuracy":
-            continue
+    split_line = line.split(keys_and_indices["sep"])
+    for key_name in ["experiment_name", "experiment_id", "classifier", "data_size", "lr"]:
         if key_name not in possible_values:
-            possible_values[key_name] = set()
-        possible_values[key_name].add(split_line[keys_and_indices[key_name]])
+            possible_values[key_name] = []
+        possible_values[key_name].append(split_line[keys_and_indices[key_name]])
+    if "lr_acc" not in possible_values:
+        possible_values["lr_acc"] = []
+    possible_values["lr_acc"].append((split_line[keys_and_indices["lr"]], split_line[keys_and_indices["accuracy"]]))
+    
 
 
 def print_num_experiments(data):
@@ -76,7 +89,8 @@ def print_num_experiments(data):
     for data_size in data:
         for classifier in data[data_size]:
             counters[str(data_size) + "_" + classifier] = len(data[data_size][classifier])
-
+    
+    #import pdb; pdb.set_trace()
     for counter in counters:
         print(counter, counters[counter])
 
@@ -87,6 +101,8 @@ def imdb_keys_and_indices():
         "classifier":-11,
         "data_size": -2,
         "accuracy": 4,
+        "sep":",",
+        "sep_name":"csv"
     }
 
 def ag_keys_and_indices():
@@ -96,11 +112,27 @@ def ag_keys_and_indices():
         "classifier":-11,
         "data_size": -2,
         "accuracy": 5,
+        "sep":",",
+        "sep_name":"csv"
+    }
+
+def sst_keys_and_indices():
+    return {
+        "experiment_name": 0,
+        "experiment_id": 0,
+        "classifier":25,
+        "data_size": 11,
+        "accuracy": 2,
+        "lr":44,
+        "sep":"\t",
+        "sep_name":"tsv"
     }
 
 
 def main():
     data = from_file()
+    import pdb; pdb.set_trace()
+    print(data)
 
 if __name__ == '__main__':
     main()
