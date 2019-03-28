@@ -1,14 +1,15 @@
 
 
-def from_file(data_name = "sst_fiveway"):
+def from_file(data_name = "sst_fiveway", return_lr_acc=False):
     if "imdb" in data_name:
         keys_and_indices = imdb_keys_and_indices()
     elif "ag_news" in data_name:
         keys_and_indices = ag_keys_and_indices()
-    elif "sst" in data_name:
+    elif "battle" in data_name:
+        keys_and_indices = battle_keys_and_indices()
+    else: #"sst" in data_name or "hatespeech" in data_name:
         keys_and_indices = sst_keys_and_indices()
-    else:
-        assert False, "data_name should be one of imbd, ag_news"
+
     filename = "/home/jessedd/data/reprocudibility/{}_search.{}".format(data_name, keys_and_indices["sep_name"])
 
 
@@ -16,24 +17,35 @@ def from_file(data_name = "sst_fiveway"):
     lines = []
     with open(filename, "r") as f:
         lines = f.readlines()
-    data = process_lines(lines, keys_and_indices)
+    data = process_lines(lines, keys_and_indices, return_lr_acc)
     return data
 
-def process_lines(lines, keys_and_indices):
+def process_lines(lines, keys_and_indices, return_lr_acc):
     print("lines with missing accuracy values:")
     possible_values = {}
     data = {}
+    
     for line in lines:
         if "Task_Name" in line or "best_epoch" in line:
             first_line = line
             continue
+
+        # to check that the columns are in the correct order, match the output of this against keys_and_indices
+        check_column_nums = False
+        if check_column_nums:
+            split_first_line = first_line.split(keys_and_indices["sep"])
+            split_line = line.split(keys_and_indices["sep"])
+            for i in range(len(split_first_line)):
+                print(i, split_first_line[i], "\t\t\t", split_line[i])
+            import pdb; pdb.set_trace()
         
         update_possible_values(line, possible_values, keys_and_indices)
         extract_data(line, data, keys_and_indices)
 
     print("")
-        
-    if False:
+
+    debug = False
+    if debug:
         print("num_experiments")
         print_num_experiments(data)
         
@@ -45,15 +57,20 @@ def process_lines(lines, keys_and_indices):
         #for classifier in data[32]:
             #lrs = []
             #for example in data[32][classifier]:
-                
 
-    return data
+    if return_lr_acc:
+        return data, possible_values["lr_acc"]
+    else:
+        return data
         
 
 def extract_data(line, data, keys_and_indices):
     #import pdb; pdb.set_trace()
     split_line = line.split(keys_and_indices["sep"])
-    cur_data_size = int(split_line[keys_and_indices["data_size"]])
+    try:
+        cur_data_size = int(split_line[keys_and_indices["data_size"]])
+    except:
+        cur_data_size = split_line[keys_and_indices["data_size"]]
     cur_classifier = split_line[keys_and_indices["classifier"]]
 
     if split_line[keys_and_indices["accuracy"]] == '':
@@ -79,8 +96,11 @@ def update_possible_values(line, possible_values, keys_and_indices):
             possible_values[key_name] = []
         possible_values[key_name].append(split_line[keys_and_indices[key_name]])
     if "lr_acc" not in possible_values:
-        possible_values["lr_acc"] = []
-    possible_values["lr_acc"].append((split_line[keys_and_indices["lr"]], split_line[keys_and_indices["accuracy"]]))
+        possible_values["lr_acc"] = {}
+    cur_class = split_line[keys_and_indices["classifier"]]
+    if cur_class not in possible_values["lr_acc"]:
+        possible_values["lr_acc"][cur_class] = []
+    possible_values["lr_acc"][cur_class].append((float(split_line[keys_and_indices["lr"]]), float(split_line[keys_and_indices["accuracy"]])))
     
 
 
@@ -121,16 +141,29 @@ def sst_keys_and_indices():
         "experiment_name": 0,
         "experiment_id": 0,
         "classifier":25,
-        "data_size": 11,
+        "data_size": 5,
         "accuracy": 2,
-        "lr":44,
+        "lr":45,
+        "sep":"\t",
+        "sep_name":"tsv"
+    }
+
+def battle_keys_and_indices():
+    return {
+        "experiment_name": 0,
+        "experiment_id": 0,
+        "classifier":24,
+        "data_size": 5,
+        "accuracy": 2,
+        "lr":50,
         "sep":"\t",
         "sep_name":"tsv"
     }
 
 
 def main():
-    data = from_file()
+    #data = from_file("hatespeech_10k")
+    data = from_file("battle_year")
     import pdb; pdb.set_trace()
     print(data)
 
