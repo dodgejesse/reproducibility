@@ -4,7 +4,7 @@
 import load_data
 import scipy.special
 
-def compute_sample_maxes(data_name = "sst_fiveway", with_replacement = True):
+def compute_sample_maxes(data_name = "sst5", with_replacement = True):
 
     data = load_data.from_file(data_name)
 
