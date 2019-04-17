@@ -4,9 +4,12 @@
 import load_data
 import scipy.special
 
-def compute_sample_maxes(data_name = "sst5", with_replacement = True):
+def compute_sample_maxes(data_name = "sst2", with_replacement = True, return_avg_time = False):
 
-    data = load_data.from_file(data_name)
+    data = load_data.from_file(data_name, return_avg_time = return_avg_time)
+    if return_avg_time:
+        avg_time = data[1]
+        data = data[0]
 
     sample_maxes = {}
     for data_size in data:
@@ -16,7 +19,10 @@ def compute_sample_maxes(data_name = "sst5", with_replacement = True):
 
             sample_maxes[data_size][classifier] = sample_max(data[data_size][classifier], with_replacement)
     #import pdb; pdb.set_trace()
-    return sample_maxes
+    if return_avg_time:
+        return sample_maxes, avg_time
+    else:
+        return sample_maxes
 
 
 # this implementation assumes sampling with replacement for computing the empirical cdf
@@ -60,7 +66,8 @@ def cdf_without_replacement(i,n,N):
     return scipy.special.comb(i,n) / scipy.special.comb(N,n)
 
 if __name__ == '__main__':
-    s_maxes = compute_sample_maxes()
+    s_maxes = compute_sample_maxes("sst2", False, True)
+    import pdb; pdb.set_trace()
 
     
 
