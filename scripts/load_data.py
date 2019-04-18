@@ -1,136 +1,79 @@
+import numpy as np
+import pandas
 
+classifiers_to_skip = []#["linear"]
 
-def from_file(data_name = "sst_fiveway"):
-    if "imdb" in data_name:
-        keys_and_indices = imdb_keys_and_indices()
-    elif "ag_news" in data_name:
-        keys_and_indices = ag_keys_and_indices()
-    elif "sst" in data_name:
-        keys_and_indices = sst_keys_and_indices()
+def from_file(data_name = "hatespeech", return_lr_acc=False, return_avg_time=False):
+
+    key_names = get_key_names()
+    filename = "/home/jessedd/data/reprocudibility/{}_search.{}".format(data_name, key_names["sep_name"])
+
+    
+    df = pandas.read_csv(filename, sep=key_names['sep'])
+    #print_data(df)
+    data, avg_time, lr_acc = get_numtrain_to_classifier_to_field(df, key_names, return_avg_time)
+
+    
+    if return_lr_acc:
+        return data, lr_acc
+    elif return_avg_time:
+        return data, avg_time
     else:
-        assert False, "data_name should be one of imbd, ag_news"
-    filename = "/home/jessedd/data/reprocudibility/{}_search.{}".format(data_name, keys_and_indices["sep_name"])
+        return data
 
-
-        
-    lines = []
-    with open(filename, "r") as f:
-        lines = f.readlines()
-    data = process_lines(lines, keys_and_indices)
-    return data
-
-def process_lines(lines, keys_and_indices):
-    print("lines with missing accuracy values:")
-    possible_values = {}
+def print_data(df):
+    for key in df.keys():
+        vals = df[key].unique()
+        if len(vals) < 5:
+            print(key, vals)
+    
+def get_numtrain_to_classifier_to_field(df, key_names, return_avg_time):
     data = {}
-    for line in lines:
-        if "Task_Name" in line or "best_epoch" in line:
-            first_line = line
-            continue
-        
-        update_possible_values(line, possible_values, keys_and_indices)
-        extract_data(line, data, keys_and_indices)
+    avg_time = {}
+    lr_acc = {}
+    #import pdb; pdb.set_trace()
+    for train_num in df[key_names['train_num']].unique():
+        if train_num not in data:
+            data[train_num] = {}
+            avg_time[train_num] = {}
+            lr_acc[train_num] = {}
+        if key_names['classifier'] in df and len(df[key_names['classifier']].unique()) > 1:
+            experiment_type = 'classifier'
+        else:
+            experiment_type = 'embedding'
+            
+        for classifier in df[key_names[experiment_type]].unique():
+            if classifier in classifiers_to_skip:
+                continue
+            # the locations of the current experiments
+            cur_locs = (df[key_names[experiment_type]] == classifier) & (df[key_names['train_num']] == train_num)
+            
+            data[train_num][classifier] = df[key_names['dev_acc']][cur_locs].values.tolist()
 
-    print("")
-        
-    if False:
-        print("num_experiments")
-        print_num_experiments(data)
-        
-        #for k in possible_values:
-        #    print(k, possible_values[k])
-        #print("")
-        import pdb; pdb.set_trace()
-        #print("possible learning rates:")
-        #for classifier in data[32]:
-            #lrs = []
-            #for example in data[32][classifier]:
+            avg_time[train_num][classifier] = df[key_names['duration']][cur_locs].mean()
+            
+            lr = df[key_names['lr']][cur_locs]
+            lr_acc[train_num][classifier] = []
+            for i in range(len(lr)):
+                lr_acc[train_num][classifier].append((lr.iloc[i], data[train_num][classifier][i]))
+
                 
-
-    return data
-        
-
-def extract_data(line, data, keys_and_indices):
-    #import pdb; pdb.set_trace()
-    split_line = line.split(keys_and_indices["sep"])
-    cur_data_size = int(split_line[keys_and_indices["data_size"]])
-    cur_classifier = split_line[keys_and_indices["classifier"]]
-
-    if split_line[keys_and_indices["accuracy"]] == '':
-        print(cur_data_size, cur_classifier)
-        return
-
-    else:
-        cur_accuracy = float(split_line[keys_and_indices["accuracy"]])
-
-    if cur_data_size not in data:
-        data[cur_data_size] = {}
-
-    if cur_classifier not in data[cur_data_size]:
-        data[cur_data_size][cur_classifier] = []
-
-    data[cur_data_size][cur_classifier].append(cur_accuracy)
-        
-
-def update_possible_values(line, possible_values, keys_and_indices):
-    split_line = line.split(keys_and_indices["sep"])
-    for key_name in ["experiment_name", "experiment_id", "classifier", "data_size", "lr"]:
-        if key_name not in possible_values:
-            possible_values[key_name] = []
-        possible_values[key_name].append(split_line[keys_and_indices[key_name]])
-    if "lr_acc" not in possible_values:
-        possible_values["lr_acc"] = []
-    possible_values["lr_acc"].append((split_line[keys_and_indices["lr"]], split_line[keys_and_indices["accuracy"]]))
-    
+    return data, avg_time, lr_acc
 
 
-def print_num_experiments(data):
-    counters = {}
-    for data_size in data:
-        for classifier in data[data_size]:
-            counters[str(data_size) + "_" + classifier] = len(data[data_size][classifier])
-    
-    #import pdb; pdb.set_trace()
-    for counter in counters:
-        print(counter, counters[counter])
-
-def imdb_keys_and_indices():
-    return {
-        "experiment_name": 2,
-        "experiment_id": 3,
-        "classifier":-11,
-        "data_size": -2,
-        "accuracy": 4,
-        "sep":",",
-        "sep_name":"csv"
+def get_key_names():
+    return {'duration':'training_duration',
+            'dev_acc':'best_validation_accuracy',
+            'classifier':'model.encoder.architecture.type',
+            'embedding':'embedding',
+            'train_num':'dataset_reader.sample',
+            'lr':'trainer.optimizer.lr',
+            'sep':'\t',
+            'sep_name':'tsv'
     }
-
-def ag_keys_and_indices():
-    return {
-        "experiment_name": 3,
-        "experiment_id": 4,
-        "classifier":-11,
-        "data_size": -2,
-        "accuracy": 5,
-        "sep":",",
-        "sep_name":"csv"
-    }
-
-def sst_keys_and_indices():
-    return {
-        "experiment_name": 0,
-        "experiment_id": 0,
-        "classifier":25,
-        "data_size": 11,
-        "accuracy": 2,
-        "lr":44,
-        "sep":"\t",
-        "sep_name":"tsv"
-    }
-
 
 def main():
-    data = from_file()
+    data = from_file("sst2_biattentive_elmo_transformer", return_avg_time=True)
     import pdb; pdb.set_trace()
     print(data)
 
