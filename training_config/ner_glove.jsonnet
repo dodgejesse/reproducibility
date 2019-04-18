@@ -21,10 +21,7 @@
       "token_characters": {
         "type": "characters",
         "min_padding_length": 3
-      },
-      "elmo": {
-        "type": "elmo_characters"
-     }
+      }
     }
   },
   "train_data_path": "s3://suching-dev/ner-2003/train.txt",
@@ -44,31 +41,24 @@
             "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
             "trainable": true
         },
-        "elmo":{
-            "type": "elmo_token_embedder",
-            "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-            "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-            "do_layer_norm": false,
-            "dropout": std.extVar("ELMO_DROPOUT")
-        },
         "token_characters": {
             "type": "character_encoding",
             "embedding": {
             "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
             },
             "encoder": {
-            "type": "cnn",
-            "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")),
-            "num_filters": std.parseInt(std.extVar("NUM_FILTERS")),
-            "ngram_filter_sizes": std.range(1, std.parseInt(std.extVar("MAX_FILTER_SIZE"))),
-            "conv_layer_activation": "relu"
+                "type": "cnn",
+                "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")),
+                "num_filters": std.parseInt(std.extVar("NUM_FILTERS")),
+                "ngram_filter_sizes": std.range(1, std.parseInt(std.extVar("MAX_FILTER_SIZE"))),
+                "conv_layer_activation": "relu"
             }
         }
       }
     },
     "encoder": {
       "type": "lstm",
-      "input_size": 1024 + 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")),
+      "input_size": 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")),
       "hidden_size": std.parseInt(std.extVar("ENCODER_HIDDEN_SIZE")),
       "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
       "dropout": std.extVar("ENCODER_DROPOUT"),

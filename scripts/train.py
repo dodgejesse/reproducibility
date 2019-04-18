@@ -14,6 +14,7 @@ def main():
     parser.add_argument('-c', '--config', type=str, help='training config', required=True)
     parser.add_argument('-s', '--serialization_dir', type=str, help='model serialization directory', required=True)
     parser.add_argument('-e', '--environment', type=str, help='hyperparameter environment', required=True)
+    parser.add_argument('-d', '--device', type=int, help='override device', required=False)
 
     args = parser.parse_args()
 
@@ -30,6 +31,9 @@ def main():
     if os.path.exists(args.serialization_dir) and args.override:
         print(f"overriding {args.serialization_dir}")
         shutil.rmtree(args.serialization_dir)
+
+    if args.device:
+        os.environ["CUDA_DEVICE"] = str(args.device)
 
     allennlp_command = [
             "allennlp",

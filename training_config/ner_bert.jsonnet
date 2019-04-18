@@ -7,6 +7,8 @@
 // There is a trained model available at https://s3-us-west-2.amazonaws.com/allennlp/models/ner-model-2018.04.30.tar.gz
 // with test set F1 of 92.51 compared to the single model reported
 // result of 92.22 +/- 0.10.
+
+
 {
 
   "dataset_reader": {
@@ -22,9 +24,10 @@
         "type": "characters",
         "min_padding_length": 3
       },
-      "elmo": {
-        "type": "elmo_characters"
-     }
+      "bert": {
+        "type": "bert-pretrained",
+        "pretrained_model": "bert-base-uncased"
+    }
     }
   },
   "train_data_path": "s3://suching-dev/ner-2003/train.txt",
@@ -44,12 +47,18 @@
             "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
             "trainable": true
         },
-        "elmo":{
-            "type": "elmo_token_embedder",
-            "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
-            "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
-            "do_layer_norm": false,
-            "dropout": std.extVar("ELMO_DROPOUT")
+        "bert": {
+            "type": "bert-pretrained-enhanced",
+            "pretrained_model": "bert-base-uncased",
+            "requires_grad": false,
+            "dropout": std.extVar("BERT_DROPOUT"),
+            "first_layer_only": std.parseInt(std.extVar("FIRST_LAYER_ONLY")) == 1,
+            "second_to_last_layer_only": std.parseInt(std.extVar("SECOND_TO_LAST_LAYER_ONLY")) == 1,
+            "last_layer_only": std.parseInt(std.extVar("LAST_LAYER_ONLY")) == 1,
+            "sum_last_four_layers": std.parseInt(std.extVar("SUM_LAST_FOUR_LAYERS")) == 1,
+            "concat_last_four_layers": std.parseInt(std.extVar("CONCAT_LAST_FOUR_LAYERS")) == 1,
+            "sum_all_layers": std.parseInt(std.extVar("SUM_ALL_LAYERS")) == 1,
+            "scalar_mix": std.parseInt(std.extVar("SCALAR_MIX")) == 1,
         },
         "token_characters": {
             "type": "character_encoding",
@@ -64,11 +73,17 @@
             "conv_layer_activation": "relu"
             }
         }
-      }
+      },
+      "allow_unmatched_keys": true,
+        "embedder_to_indexer_map": {
+            "bert": ["bert", "bert-offsets"],
+            "tokens": ["tokens"],
+            "token_characters": ["token_characters"]
+        }
     },
     "encoder": {
       "type": "lstm",
-      "input_size": 1024 + 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")),
+      "input_size": if std.parseInt(std.extVar("CONCAT_LAST_FOUR_LAYERS")) == 1 then 768 * 4 + 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")) else 768  + 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")),
       "hidden_size": std.parseInt(std.extVar("ENCODER_HIDDEN_SIZE")),
       "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
       "dropout": std.extVar("ENCODER_DROPOUT"),
