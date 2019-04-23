@@ -6,9 +6,9 @@ local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
 
 // Paths to data.
-local TRAIN_PATH = std.extVar("DATA_DIR") + "train_pretokenized.jsonl";
-local DEV_PATH =  std.extVar("DATA_DIR") + "dev_pretokenized.jsonl";
-local TEST_PATH =  std.extVar("DATA_DIR") + "test_pretokenized.jsonl";
+local TRAIN_PATH = std.extVar("DATA_DIR") + "train.txt";
+local DEV_PATH =  std.extVar("DATA_DIR") + "dev.txt";
+local TEST_PATH =  std.extVar("DATA_DIR") + "test.txt";
 
 // Throttle the training data to a random subset of this length.
 local THROTTLE = std.extVar("THROTTLE");
@@ -105,7 +105,7 @@ local BERT_FIELDS(trainable) = {
   "bert_indexer": {
        "bert": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased"
+        "pretrained_model": "bert-base-uncased",
     }
   },
   "bert_embedder": {
@@ -432,12 +432,22 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
   "sample": THROTTLE,
 };
 
+local SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER) = {
+  "lazy": USE_LAZY_DATASET_READER,
+  "type": "sst_tokens",
+  "granularity": "2-class",
+  // "tokenizer": {
+  //   "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+  // },
+  "token_indexers": TOKEN_INDEXERS,
+};
+
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
-   "validation_dataset_reader": BASE_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+   "dataset_reader": SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+   "validation_dataset_reader": SST_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
   // NOTE: we are assuming that vocabulary is created from both train, dev, and test. 
   // Our data splitting should ensure that there is no overlap between these splits.
   //  "datasets_for_vocab_creation": ["train"],

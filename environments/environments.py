@@ -1,7 +1,7 @@
 
 from environments.random_search import RandomSearch
 
-DATA_DIR = "/home/suching/reproducibility/data/ag-news/"
+DATA_DIR = "/home/suching/reproducibility/data/sst/"
 
 BOW_LINEAR = {
         "CUDA_DEVICE": 0,
@@ -38,14 +38,14 @@ BOW_LINEAR = {
 CLASSIFIER_SEARCH = {
         "LAZY_DATASET_READER": 0,
         "CUDA_DEVICE": 0,
-        "EVALUATE_ON_TEST": 0,
+        "EVALUATE_ON_TEST": 1,
         "NUM_EPOCHS": 50,
         "SEED": RandomSearch.random_integer(0, 100),
         "DATA_DIR": DATA_DIR,
         "THROTTLE": None,
         "USE_SPACY_TOKENIZER": 0,
         "FREEZE_EMBEDDINGS": None,
-        "EMBEDDINGS": "GLOVE",
+        "EMBEDDINGS": ["ELMO_LSTM"],
         "ENCODER": "LSTM",
         "LEARNING_RATE": RandomSearch.random_loguniform(1e-6, 1e-1),
         "DROPOUT": RandomSearch.random_integer(0, 5),
@@ -64,30 +64,54 @@ CLASSIFIER_SEARCH = {
         "NUM_CHARACTER_ENCODER_LAYERS": RandomSearch.random_choice(1, 2),
 }
 
+DAM_SEARCH = {
+        "CUDA_DEVICE": 0,
+        "EVALUATE_ON_TEST": 1,
+        "PROJECTION_DIM": RandomSearch.random_integer(64, 300),
+        "ATTEND_FEEDFORWARD_NUM_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "ATTEND_FEEDFORWARD_HIDDEN_DIMS": RandomSearch.random_integer(64, 512),
+        "ATTEND_FEEDFORWARD_ACTIVATION": RandomSearch.random_choice("relu", "tanh"),
+        "ATTEND_FEEDFORWARD_DROPOUT": RandomSearch.random_uniform(0, 0.5),
+        "COMPARE_FEEDFORWARD_NUM_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "COMPARE_FEEDFORWARD_HIDDEN_DIMS": RandomSearch.random_integer(64, 512),
+        "COMPARE_FEEDFORWARD_ACTIVATION": RandomSearch.random_choice("relu", "tanh"),
+        "COMPARE_FEEDFORWARD_DROPOUT": RandomSearch.random_uniform(0, 0.5),
+        "AGGREGATE_FEEDFORWARD_NUM_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "AGGREGATE_FEEDFORWARD_HIDDEN_DIMS": RandomSearch.random_integer(64, 512),
+        "AGGREGATE_FEEDFORWARD_ACTIVATION": RandomSearch.random_choice("relu", "tanh"),
+        "AGGREGATE_FEEDFORWARD_DROPOUT": RandomSearch.random_uniform(0, 0.5),
+        "SEED": RandomSearch.random_integer(0, 100),
+        "GRAD_CLIP": RandomSearch.random_uniform(5, 10),
+        "LEARNING_RATE": RandomSearch.random_loguniform(1e-6, 1e-1),
+        "BATCH_SIZE": 64,
+        "NUM_EPOCHS": 140
+}
+
+
 
 NER_SEARCH = {
         "CUDA_DEVICE": 0,
         "EVALUATE_ON_TEST": 1,
         "SEED": RandomSearch.random_integer(0, 100),
-        "LEARNING_RATE": RandomSearch.random_loguniform(1e-6, 1e-1),
-        "ALPHA": RandomSearch.random_loguniform(1e-3, 1),
-        "DROPOUT": RandomSearch.random_uniform(0, 0.5),
+        "LEARNING_RATE": 5e-5,
+        "ALPHA": 0.0,
+        "DROPOUT": 0.1,
         "ELMO_DROPOUT": RandomSearch.random_uniform(0, 0.5),
-        "BERT_DROPOUT": RandomSearch.random_uniform(0, 0.5),
-        "ENCODER_DROPOUT": RandomSearch.random_uniform(0, 0.5),
+        "BERT_DROPOUT": 0.1,
+        "ENCODER_DROPOUT": 0.1,
         "FIRST_LAYER_ONLY": 0,
-        "SECOND_TO_LAST_LAYER_ONLY": 0,
+        "SECOND_TO_LAST_LAYER_ONLY": 1,
         "LAST_LAYER_ONLY": 0,
         "SUM_LAST_FOUR_LAYERS": 0,
         "CONCAT_LAST_FOUR_LAYERS": 0,
-        "SUM_ALL_LAYERS": 1,
+        "SUM_ALL_LAYERS": 0,
         "SCALAR_MIX": 0,            
-        "BATCH_SIZE": 64,
-        "NUM_ENCODER_LAYERS": RandomSearch.random_choice(1, 2, 3),
+        "BATCH_SIZE": 16,
+        "NUM_ENCODER_LAYERS": 2,
         "MAX_FILTER_SIZE": RandomSearch.random_integer(3, 6),
         "NUM_FILTERS": RandomSearch.random_integer(16, 64),
-        "ENCODER_HIDDEN_SIZE": RandomSearch.random_integer(64, 512),
-        "GRAD_NORM": RandomSearch.random_uniform(5, 10),
+        "ENCODER_HIDDEN_SIZE": 768,
+        "GRAD_NORM": 7,
         "CHARACTER_EMBEDDING_DIM": RandomSearch.random_integer(16, 64),
 }
 
@@ -278,5 +302,6 @@ ENVIRONMENTS = {
         "CLASSIFIER_SEARCH": CLASSIFIER_SEARCH,
         "NER_SEARCH": NER_SEARCH,
         "BIDAF_SEARCH": BIDAF_SEARCH,
+        "DAM_SEARCH": DAM_SEARCH,
         "BIATTENTIVE_CLASSIFICATION_NETWORK_SEARCH_SST": BIATTENTIVE_CLASSIFICATION_NETWORK_SEARCH_SST
 }

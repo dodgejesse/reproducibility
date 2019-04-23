@@ -29,7 +29,7 @@
   "test_data_path": "s3://suching-dev/ner-2003/test.txt",
   "evaluate_on_test": std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1,
   "model": {
-    "type": "ner_no_crf",
+    "type": "ner_no_crf1",
     "label_encoding": "BIOUL",
     "dropout": std.extVar("DROPOUT"),
     "constrain_crf_decoding": true,
@@ -80,7 +80,8 @@
   "trainer": {
     "optimizer": {
         "type": "bert_adam",
-        "lr": std.extVar("LEARNING_RATE")
+        "lr": std.extVar("LEARNING_RATE"),
+        "warmup": 0.4
     },
     "validation_metric": "+f1-measure-overall",
     "num_serialized_models_to_keep": 1,

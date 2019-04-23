@@ -14,14 +14,6 @@
     "tag_label": "ner",
     "coding_scheme": "BIOUL",
     "token_indexers": {
-      "tokens": {
-        "type": "single_id",
-        "lowercase_tokens": true
-      },
-      "token_characters": {
-        "type": "characters",
-        "min_padding_length": 3
-      },
       "elmo": {
         "type": "elmo_characters"
      }
@@ -32,18 +24,12 @@
   "test_data_path": "s3://suching-dev/ner-2003/test.txt",
   "evaluate_on_test": std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1,
   "model": {
-    "type": "crf_tagger",
+    "type": "crf_tagger_elmo",
     "label_encoding": "BIOUL",
     "dropout": std.extVar("DROPOUT"),
     "include_start_end_transitions": false,
     "text_field_embedder": {
       "token_embedders": {
-        "tokens": {
-            "type": "embedding",
-            "embedding_dim": 50,
-            "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
-            "trainable": true
-        },
         "elmo":{
             "type": "elmo_token_embedder",
             "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
@@ -51,29 +37,8 @@
             "do_layer_norm": false,
             "dropout": std.extVar("ELMO_DROPOUT"),
             "requires_grad": true
-        },
-        "token_characters": {
-            "type": "character_encoding",
-            "embedding": {
-            "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
-            },
-            "encoder": {
-            "type": "cnn",
-            "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")),
-            "num_filters": std.parseInt(std.extVar("NUM_FILTERS")),
-            "ngram_filter_sizes": std.range(1, std.parseInt(std.extVar("MAX_FILTER_SIZE"))),
-            "conv_layer_activation": "relu"
-            }
         }
       }
-    },
-    "encoder": {
-      "type": "lstm",
-      "input_size": 1024 + 50 + std.parseInt(std.extVar("NUM_FILTERS")) * std.parseInt(std.extVar("MAX_FILTER_SIZE")),
-      "hidden_size": std.parseInt(std.extVar("ENCODER_HIDDEN_SIZE")),
-      "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
-      "dropout": std.extVar("ENCODER_DROPOUT"),
-      "bidirectional": true
     },
     "regularizer": [
       [
