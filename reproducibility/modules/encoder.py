@@ -1,6 +1,7 @@
 # pylint: disable=arguments-differ
 
 import torch
+from typing import List
 from overrides import overrides
 from allennlp.common import Registrable
 from allennlp.modules import FeedForward, Seq2SeqEncoder, Seq2VecEncoder
@@ -67,10 +68,10 @@ class Seq2Vec(Encoder):
 @Encoder.register("seq2seq")
 class Seq2Seq(Encoder):
 
-    def __init__(self, architecture: Seq2SeqEncoder, aggregations: str) -> None:
+    def __init__(self, architecture: Seq2SeqEncoder, aggregations: List[str]) -> None:
         super(Seq2Seq, self).__init__(architecture)
         self._architecture = architecture
-        self._aggregations = aggregations.split(",")
+        self._aggregations = aggregations[0].split(" ")
         if "attention" in self._aggregations:
             self._attention_layer = torch.nn.Linear(self._architecture.get_output_dim(),
                                                     1)

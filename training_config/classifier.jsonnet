@@ -1,9 +1,14 @@
+local USE_LAZY_DATASET_READER = std.parseInt(std.extVar("LAZY_DATASET_READER")) == 1;
+
+
 // GPU to use. Setting this to -1 will mean that we'll use the CPU.
 local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
+
 // Paths to data.
-local TRAIN_PATH = std.extVar("DATA_DIR") + "train.jsonl";
-local DEV_PATH =  std.extVar("DATA_DIR") + "dev.jsonl";
+local TRAIN_PATH = std.extVar("DATA_DIR") + "train.txt";
+local DEV_PATH =  std.extVar("DATA_DIR") + "dev.txt";
+local TEST_PATH =  std.extVar("DATA_DIR") + "test.txt";
 
 // Throttle the training data to a random subset of this length.
 local THROTTLE = std.extVar("THROTTLE");
@@ -15,9 +20,17 @@ local USE_SPACY_TOKENIZER = std.parseInt(std.extVar("USE_SPACY_TOKENIZER"));
 local LEARNING_RATE = std.extVar("LEARNING_RATE");
 
 // dropout applied after pooling
-local DROPOUT = std.parseInt(std.extVar("DROPOUT"));
+local DROPOUT = std.parseInt(std.extVar("DROPOUT")) / 10;
 
 local BATCH_SIZE = std.parseInt(std.extVar("BATCH_SIZE"));
+
+local EMBEDDINGS = std.split(std.extVar("EMBEDDINGS"), " ");
+local FREEZE_EMBEDDINGS = std.split(std.extVar("FREEZE_EMBEDDINGS"), " ");
+
+local EVALUATE_ON_TEST = std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1;
+
+local NUM_EPOCHS = std.parseInt(std.extVar("NUM_EPOCHS"));
+
 
 
 local BOE_FIELDS(embedding_dim, averaged) = {
@@ -38,7 +51,7 @@ local LSTM_FIELDS(num_encoder_layers, embedding_dim, hidden_size, aggregations) 
         "input_size": embedding_dim,
         "hidden_size": hidden_size
       },
-      "aggregations": aggregations
+      "aggregations": std.split(aggregations, ",")
 };
 
 local CNN_FIELDS(max_filter_size, embedding_dim, hidden_size, num_filters) = {
@@ -69,7 +82,7 @@ local CLS_TOKEN_FIELDS(embedding_dim) = {
 };
 
 
-local ELMO_LSTM_FIELDS = {
+local ELMO_LSTM_FIELDS(trainable) = {
   "elmo_lstm_indexer": {
     "elmo": {
       "type": "elmo_characters",
@@ -81,24 +94,25 @@ local ELMO_LSTM_FIELDS = {
       "options_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_options.json",
       "weight_file": "https://s3-us-west-2.amazonaws.com/allennlp/models/elmo/2x4096_512_2048cnn_2xhighway/elmo_2x4096_512_2048cnn_2xhighway_weights.hdf5",
       "do_layer_norm": false,
-      "dropout": 0.0
+      "dropout": 0.0,
+      "requires_grad": trainable
     }
   },
   "embedding_dim": 1024
 };
 
-local BERT_FIELDS = {
+local BERT_FIELDS(trainable) = {
   "bert_indexer": {
        "bert": {
         "type": "bert-pretrained",
-        "pretrained_model": "bert-base-uncased"
+        "pretrained_model": "bert-base-uncased",
     }
   },
   "bert_embedder": {
     "bert": {
         "type": "bert-pretrained",
         "pretrained_model": "bert-base-uncased",
-        "requires_grad": true,
+        "requires_grad": trainable,
         "top_layer_only": false
         }
   },
@@ -112,7 +126,7 @@ local BERT_FIELDS = {
   "embedding_dim": 768
 };
 
-local ELMO_TRANSFORMER_FIELDS = {
+local ELMO_TRANSFORMER_FIELDS(trainable) = {
   "elmo_transformer_indexer": {
     "elmo": {
       "type": "elmo_characters",
@@ -125,13 +139,13 @@ local ELMO_TRANSFORMER_FIELDS = {
       "dropout": 0.0,
       "bos_eos_tokens": ["<S>", "</S>"],
       "remove_bos_eos": true,
-      "requires_grad": true
+      "requires_grad": trainable
     }
   },
   "embedding_dim": 1024
 };
 
-local GLOVE_FIELDS = {
+local GLOVE_FIELDS(trainable) = {
   "glove_indexer": {
     "tokens": {
       "type": "single_id",
@@ -141,14 +155,14 @@ local GLOVE_FIELDS = {
   "glove_embedder": {
     "tokens": {
         "embedding_dim": 50,
-        "trainable": true,
+        "trainable": trainable,
         "pretrained_file": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/glove/glove.6B.50d.txt.gz",
     }
   },
   "embedding_dim": 50
 };
 
-local W2V_FIELDS = {
+local W2V_FIELDS(trainable) = {
   "w2v_indexer": {
     "tokens": {
       "type": "single_id",
@@ -158,14 +172,67 @@ local W2V_FIELDS = {
   "w2v_embedder": {
     "tokens": {
         "embedding_dim": 300,
-        "trainable": true,
+        "trainable": trainable,
         "pretrained_file": "https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip",
     }
   },
   "embedding_dim": 300
 };
 
-local CHAR_CNN_FIELDS = {
+local VAMPIRE_FIELDS(trainable) = {
+    "vampire_indexer": {
+        "vampire_tokens": {
+            "type": "single_id",
+            "namespace": "vae",
+            "lowercase_tokens": true
+        }
+    },  
+    "vampire_embedder": {
+        "vampire_tokens": {
+                "type": "vampire_token_embedder",
+                "expand_dim": true,
+                "requires_grad": trainable,
+                "model_archive": "/home/sg/Github/vampire/model_logs/pretrained_vampire/model.tar.gz",
+                "background_frequency": "/home/sg/Github/vampire/model_logs/pretrained_vampire/vocabulary/vae.bgfreq.json",
+                "dropout": 0.0
+        }
+    },
+    "vocabulary": {
+        "vocabulary":{
+              "type": "vocabulary_with_vae",
+              "vae_vocab_file": "/home/sg/Github/vampire/model_logs/pretrained_vampire/vocabulary/vae.txt",
+        }
+    },
+    "embedding_dim": 64
+};
+
+
+
+local CHARACTER_ENCODER = if std.count(EMBEDDINGS, "CHAR_AVERAGE") > 0 then BOE_FIELDS(std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")), true) else {} + 
+                          if std.count(EMBEDDINGS, "CHAR_LSTM") > 0 then LSTM_FIELDS(std.parseInt(std.extVar("NUM_CHARACTER_ENCODER_LAYERS")), std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")), std.parseInt(std.extVar("CHARACTER_HIDDEN_SIZE")), null) else {} +
+                          if std.count(EMBEDDINGS, "CHAR_CNN") > 0 then CNN_FIELDS(std.parseInt(std.extVar("MAX_CHARACTER_FILTER_SIZE")), std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM")), std.parseInt(std.extVar("CHARACTER_HIDDEN_SIZE")), std.parseInt(std.extVar("NUM_CHARACTER_FILTERS"))) else {};
+
+
+local CHAR_AVERAGE_FIELDS(trainable) = {
+  "boe_indexer": {
+    "token_characters": {
+      "type": "characters",
+    }
+  },
+  "boe_embedder": {
+    "token_characters": {
+      "type": "character_encoding",
+        "embedding": {
+          "trainable": trainable,
+          "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
+      },
+      "encoder": {"type": "boe"} + CHARACTER_ENCODER['architecture'],
+    }
+  },
+  "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
+};
+
+local CHAR_CNN_FIELDS(trainable) = {
   "cnn_indexer": {
     "token_characters": {
       "type": "characters",
@@ -176,21 +243,16 @@ local CHAR_CNN_FIELDS = {
     "token_characters": {
       "type": "character_encoding",
         "embedding": {
-          "trainable": true,
-          "embedding_dim": 32
+          "trainable": trainable,
+          "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
       },
-      "encoder": {
-        "type": "cnn",
-        "embedding_dim": 32,
-        "num_filters": 100,
-        "ngram_filter_sizes": [2,3,4,5]
-      },
+      "encoder": {"type": "cnn"} + CHARACTER_ENCODER['architecture'],
     }
   },
-  "embedding_dim": 400
+  "embedding_dim": std.parseInt(std.extVar("CHARACTER_HIDDEN_SIZE"))
 };
 
-local CHAR_LSTM_FIELDS = {
+local CHAR_LSTM_FIELDS(trainable) = {
   "lstm_indexer": {
     "token_characters": {
       "type": "characters",
@@ -201,22 +263,16 @@ local CHAR_LSTM_FIELDS = {
     "token_characters": {
       "type": "character_encoding",
         "embedding": {
-          "trainable": true,
-          "embedding_dim": 32
+          "trainable": trainable,
+          "embedding_dim": std.parseInt(std.extVar("CHARACTER_EMBEDDING_DIM"))
       },
-      "encoder": {
-        "type": "lstm",
-        "input_size": 32,
-        "num_layers": 1,
-        "bidirectional": true,
-        "hidden_size": 200
-      },
+      "encoder": {"type": "lstm"} + CHARACTER_ENCODER['architecture'],
     }
   },
-  "embedding_dim": 400
+  "embedding_dim": std.parseInt(std.extVar("CHARACTER_HIDDEN_SIZE")) * 2
 };
 
-local RANDOM_FIELDS = {
+local RANDOM_FIELDS(trainable) = {
   "random_indexer": {
     "tokens": {
       "type": "single_id",
@@ -226,7 +282,7 @@ local RANDOM_FIELDS = {
   "random_embedder": {
     "tokens": {
         "embedding_dim": 300,
-        "trainable": true,
+        "trainable": trainable,
         "type": "embedding",
     }
   },
@@ -249,39 +305,114 @@ local BOW_COUNT_FIELDS = {
   "embedding_dim": 0
 };
 
+local ELMO_OPTIMIZER = {
+      "optimizer": {
+                "type": "adam",
+                "lr": 0.004,
+                "parameter_groups": [
+                      [["_input_embedder.token_embedder_elmo._lm._text_field_embedder.token_embedder_token_characters.*"], {}],
+                      [["_input_embedder.token_embedder_elmo._lm._contextualizer._backward_transformer.*"], {}],
+                      [["_input_embedder.token_embedder_elmo._lm._contextualizer._forward_transformer.*"], {}],
+                      // [["_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.forward_layer_0.*", "_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.backward_layer_0.*"], {}],
+                      // [["_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.forward_layer_1.*", "_input_embedder.token_embedder_elmo._elmo._elmo_lstm._elmo_lstm.backward_layer_1.*"], {}],
+                      [["^_classification_layer.weight", "^_classification_layer.bias", ".*scalar_mix.*"], {}]
+                ],
+    },
+    "learning_rate_scheduler": {
+        "type": "slanted_triangular",
+        "gradual_unfreezing": true,
+        "discriminative_fine_tuning": true,
+        "num_epochs": 50,
+        "ratio": 32,
+        "decay_factor": 0.4,
+        // 98794 training instances for use-trees and sst-2
+        "num_steps_per_epoch": 313,
+    }
+};
 
 
-local TOKEN_INDEXERS = if std.extVar("EMBEDDING") == "ELMO_LSTM" then ELMO_LSTM_FIELDS['elmo_lstm_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "BERT" then BERT_FIELDS['bert_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "RANDOM" then RANDOM_FIELDS['random_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "W2V" then W2V_FIELDS['w2v_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "CHAR_CNN" then CHAR_CNN_FIELDS['cnn_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "CHAR_LSTM" then CHAR_LSTM_FIELDS['lstm_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "GLOVE" then GLOVE_FIELDS['glove_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "ELMO_TRANSFORMER" then ELMO_TRANSFORMER_FIELDS['elmo_transformer_indexer'] else {}
-                        + if std.extVar("EMBEDDING") == "BOW_COUNTS" then BOW_COUNT_FIELDS['bow_indexer'] else {};
+
+local ELMO_LSTM_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "ELMO_LSTM") > 0 == false then true else false;
+local BERT_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "BERT") > 0 == false then true  else false;
+local RANDOM_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "RANDOM") > 0 == false then true  else false;
+local W2V_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "W2V") > 0 == false then true  else false;
+local CHAR_CNN_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "CHAR_CNN") > 0 == false then true  else false;
+local CHAR_LSTM_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "CHAR_LSTM") > 0 == false then true  else false;
+local CHAR_AVERAGE_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "CHAR_AVERAGE") > 0 == false then true  else false;
+local GLOVE_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "GLOVE") > 0 == false then true  else false;
+local ELMO_TRANSFORMER_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "ELMO_TRANSFORMER") > 0 == false then true  else false;
+local VAMPIRE_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "VAMPIRE") > 0 == false then true else false;
+
+local RANDOM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_indexer'] else {};
+
+local VAMPIRE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['vampire_indexer'] else {};
 
 
-local TOKEN_EMBEDDERS = if std.extVar("EMBEDDING") == "ELMO_LSTM" then ELMO_LSTM_FIELDS['elmo_lstm_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "BERT" then BERT_FIELDS['bert_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "RANDOM" then RANDOM_FIELDS['random_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "W2V" then W2V_FIELDS['w2v_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "CHAR_CNN" then CHAR_CNN_FIELDS['cnn_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "CHAR_LSTM" then CHAR_LSTM_FIELDS['lstm_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "GLOVE" then GLOVE_FIELDS['glove_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "ELMO_TRANSFORMER" then ELMO_TRANSFORMER_FIELDS['elmo_transformer_embedder'] else {}
-                        + if std.extVar("EMBEDDING") == "BOW_COUNTS" then BOW_COUNT_FIELDS['bow_embedder'] else {};
+local ELMO_LSTM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['elmo_lstm_indexer'] else {};
+local BERT_TOKEN_INDEXER = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['bert_indexer'] else {};
+local RANDOM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_indexer'] else {};
+local W2V_TOKEN_INDEXER = if std.count(EMBEDDINGS, "W2V") > 0 then W2V_FIELDS(W2V_TRAINABLE)['w2v_indexer'] else {};
+local CHAR_CNN_TOKEN_INDEXER = if std.count(EMBEDDINGS, "CHAR_CNN") > 0 then CHAR_CNN_FIELDS(CHAR_CNN_TRAINABLE)['cnn_indexer'] else {};
+local CHAR_LSTM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "CHAR_LSTM") > 0 then CHAR_LSTM_FIELDS(CHAR_LSTM_TRAINABLE)['lstm_indexer'] else {};
+local CHAR_AVERAGE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "CHAR_AVERAGE") > 0 then CHAR_AVERAGE_FIELDS(CHAR_AVERAGE_TRAINABLE)['boe_indexer'] else {};
+local GLOVE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "GLOVE") > 0 then GLOVE_FIELDS(GLOVE_TRAINABLE)['glove_indexer'] else {};
+local ELMO_TRANSFORMER_TOKEN_INDEXER = if std.count(EMBEDDINGS, "ELMO_TRANSFORMER") > 0 then ELMO_TRANSFORMER_FIELDS(ELMO_TRANSFORMER_TRAINABLE)['elmo_transformer_indexer'] else {};
+local VAMPIRE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['vampire_indexer'] else {};
 
-local EMBEDDING_DIM = if std.extVar("EMBEDDING") == "ELMO_LSTM" then ELMO_LSTM_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "BERT" then BERT_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "RANDOM" then RANDOM_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "W2V" then W2V_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "CHAR_CNN" then CHAR_CNN_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "CHAR_LSTM" then CHAR_LSTM_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "GLOVE" then GLOVE_FIELDS['embedding_dim'] else 0
-                        + if std.extVar("EMBEDDING") == "ELMO_TRANSFORMER" then ELMO_TRANSFORMER_FIELDS['embedding_dim'] else 0;
+local TOKEN_INDEXERS = ELMO_LSTM_TOKEN_INDEXER
+                       + BERT_TOKEN_INDEXER
+                       + RANDOM_TOKEN_INDEXER
+                       + W2V_TOKEN_INDEXER 
+                       + CHAR_CNN_TOKEN_INDEXER
+                       + CHAR_LSTM_TOKEN_INDEXER
+                       + CHAR_AVERAGE_TOKEN_INDEXER
+                       + GLOVE_TOKEN_INDEXER
+                       + ELMO_TRANSFORMER_TOKEN_INDEXER
+                       + VAMPIRE_TOKEN_INDEXER;
 
+local ELMO_LSTM_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['elmo_lstm_embedder'] else {};
+local BERT_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['bert_embedder'] else {};
+local RANDOM_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_embedder'] else {};
+local W2V_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "W2V") > 0 then W2V_FIELDS(W2V_TRAINABLE)['w2v_embedder'] else {};
+local CHAR_CNN_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "CHAR_CNN") > 0 then CHAR_CNN_FIELDS(CHAR_CNN_TRAINABLE)['cnn_embedder'] else {};
+local CHAR_LSTM_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "CHAR_LSTM") > 0 then CHAR_LSTM_FIELDS(CHAR_LSTM_TRAINABLE)['lstm_embedder'] else {};
+local CHAR_AVERAGE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "CHAR_AVERAGE") > 0 then CHAR_AVERAGE_FIELDS(CHAR_AVERAGE_TRAINABLE)['boe_embedder'] else {};
+local GLOVE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "GLOVE") > 0 then GLOVE_FIELDS(GLOVE_TRAINABLE)['glove_embedder'] else {};
+local ELMO_TRANSFORMER_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "ELMO_TRANSFORMER") > 0 then ELMO_TRANSFORMER_FIELDS(ELMO_TRANSFORMER_TRAINABLE)['elmo_transformer_embedder'] else {};
+local VAMPIRE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['vampire_embedder'] else {};
 
+local TOKEN_EMBEDDERS = ELMO_LSTM_TOKEN_EMBEDDER
+                       + BERT_TOKEN_EMBEDDER
+                       + RANDOM_TOKEN_EMBEDDER
+                       + W2V_TOKEN_EMBEDDER 
+                       + CHAR_CNN_TOKEN_EMBEDDER
+                       + CHAR_LSTM_TOKEN_EMBEDDER
+                       + CHAR_AVERAGE_TOKEN_EMBEDDER
+                       + GLOVE_TOKEN_EMBEDDER
+                       + ELMO_TRANSFORMER_TOKEN_EMBEDDER
+                       + VAMPIRE_TOKEN_EMBEDDER;
+
+local ELMO_LSTM_EMBEDDING_DIM = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['embedding_dim'] else 0;
+local BERT_EMBEDDING_DIM = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['embedding_dim'] else 0;
+local RANDOM_EMBEDDING_DIM = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['embedding_dim'] else 0;
+local W2V_EMBEDDING_DIM = if std.count(EMBEDDINGS, "W2V") > 0 then W2V_FIELDS(W2V_TRAINABLE)['embedding_dim'] else 0;
+local CHAR_CNN_EMBEDDING_DIM = if std.count(EMBEDDINGS, "CHAR_CNN") > 0 then CHAR_CNN_FIELDS(CHAR_CNN_TRAINABLE)['embedding_dim'] else 0;
+local CHAR_LSTM_EMBEDDING_DIM = if std.count(EMBEDDINGS, "CHAR_LSTM") > 0 then CHAR_LSTM_FIELDS(CHAR_LSTM_TRAINABLE)['embedding_dim'] else 0;
+local CHAR_AVERAGE_EMBEDDING_DIM = if std.count(EMBEDDINGS, "CHAR_AVERAGE") > 0 then CHAR_AVERAGE_FIELDS(CHAR_AVERAGE_TRAINABLE)['embedding_dim'] else 0;
+local GLOVE_EMBEDDING_DIM = if std.count(EMBEDDINGS, "GLOVE") > 0 then GLOVE_FIELDS(GLOVE_TRAINABLE)['embedding_dim'] else 0;
+local ELMO_TRANSFORMER_EMBEDDING_DIM = if std.count(EMBEDDINGS, "ELMO_TRANSFORMER") > 0 then ELMO_TRANSFORMER_FIELDS(ELMO_TRANSFORMER_TRAINABLE)['embedding_dim'] else 0;
+local VAMPIRE_EMBEDDING_DIM = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['embedding_dim'] else 0;
+
+local EMBEDDING_DIM = ELMO_LSTM_EMBEDDING_DIM
+                      + BERT_EMBEDDING_DIM
+                      + RANDOM_EMBEDDING_DIM
+                      + W2V_EMBEDDING_DIM 
+                      + CHAR_CNN_EMBEDDING_DIM
+                      + CHAR_LSTM_EMBEDDING_DIM
+                      + CHAR_AVERAGE_EMBEDDING_DIM
+                      + GLOVE_EMBEDDING_DIM
+                      + ELMO_TRANSFORMER_EMBEDDING_DIM
+                      + VAMPIRE_EMBEDDING_DIM;
 
 local ENCODER = if std.extVar("ENCODER") == "AVERAGE" then BOE_FIELDS(EMBEDDING_DIM, true) else {} + 
                 if std.extVar("ENCODER") == "SUM" then BOE_FIELDS(EMBEDDING_DIM, false) else {} + 
@@ -291,9 +422,8 @@ local ENCODER = if std.extVar("ENCODER") == "AVERAGE" then BOE_FIELDS(EMBEDDING_
                 if std.extVar("ENCODER") == "CNN" then CNN_FIELDS(std.parseInt(std.extVar("MAX_FILTER_SIZE")), EMBEDDING_DIM, std.parseInt(std.extVar("HIDDEN_SIZE")), std.extVar("NUM_FILTERS")) else {};
 
 
-
-local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER) = {
-  "lazy": false,
+local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER) = {
+  "lazy": USE_LAZY_DATASET_READER,
   "type": "semisupervised_text_classification_json",
   "tokenizer": {
     "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
@@ -302,23 +432,38 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER) = {
   "sample": THROTTLE,
 };
 
+local SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER) = {
+  "lazy": USE_LAZY_DATASET_READER,
+  "type": "sst_tokens",
+  "granularity": "2-class",
+  // "tokenizer": {
+  //   "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
+  // },
+  "token_indexers": TOKEN_INDEXERS,
+};
+
 {
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER),
-   "validation_dataset_reader": BASE_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER),
+   "dataset_reader": SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+   "validation_dataset_reader": SST_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
   // NOTE: we are assuming that vocabulary is created from both train, dev, and test. 
   // Our data splitting should ensure that there is no overlap between these splits.
   //  "datasets_for_vocab_creation": ["train"],
    "train_data_path": TRAIN_PATH,
    "validation_data_path": DEV_PATH,
+   "test_data_path": if EVALUATE_ON_TEST then TEST_PATH else null,
+   "evaluate_on_test": EVALUATE_ON_TEST,
+   "vocabulary": {
+     "max_vocab_size": 10000
+   },
    "model": {
       "type": "classifier",
       "input_embedder": {
                 "token_embedders": TOKEN_EMBEDDERS
-      } + if std.extVar("EMBEDDING") == "BERT" then BERT_FIELDS['extra_embedder_fields'] else {},
-      "encoder": if std.extVar("EMBEDDING") == "BOW_COUNTS" then null else ENCODER,
+      } + if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS['extra_embedder_fields'] else {},
+      "encoder": ENCODER,
       "dropout": DROPOUT
    },	
     "iterator": {
@@ -327,12 +472,17 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER) = {
    },
    "trainer": {
       "cuda_device": CUDA_DEVICE,
-      "num_epochs": 50,
+      "num_epochs": NUM_EPOCHS,
       "optimizer": {
          "lr": LEARNING_RATE,
          "type": "adam"
       },
-      "patience": 5,
+      "learning_rate_scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 2
+      },
+      "patience": 10,
       "validation_metric": "+accuracy",
       "num_serialized_models_to_keep": 1
    }

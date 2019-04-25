@@ -19,8 +19,8 @@ class RandomSearch:
         return lambda: int(np.random.randint(low, high)) * scale
 
     @staticmethod
-    def random_loguniform(low, high, scale=1):
-        return lambda: str(np.exp(np.random.uniform(np.log(1e-6), np.log(1e-1))))
+    def random_loguniform(low, high):
+        return lambda: str(np.exp(np.random.uniform(np.log(low), np.log(high))))
 
     @staticmethod
     def random_subset(*args):
@@ -51,7 +51,7 @@ class HyperparameterSearch:
             elif isinstance(val, (float, np.float)):
                 return float(val)
             elif isinstance(val, (np.ndarray, list)):
-                return ",".join(val)
+                return " ".join(val)
             else:
                 return val
         elif isinstance(val, (int, np.int)):
@@ -59,7 +59,7 @@ class HyperparameterSearch:
         elif isinstance(val, (float, np.float)):
             return float(val)
         elif isinstance(val, (np.ndarray, list)):
-            return ",".join(val)
+            return " ".join(val)
         elif val is None:
             return None
         else:
