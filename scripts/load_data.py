@@ -6,7 +6,7 @@ classifiers_to_skip = []#["linear"]
 def from_file(data_name = "hatespeech", return_lr_acc=False, return_avg_time=False):
 
     key_names = get_key_names()
-    filename = "/home/jessedd/data/reprocudibility/{}_search.{}".format(data_name, key_names["sep_name"])
+    filename = "/home/jessedd/data/reprocudibility/{}.{}".format(data_name, key_names["sep_name"])
 
     
     df = pandas.read_csv(filename, sep=key_names['sep'])
@@ -26,7 +26,7 @@ def print_data(df):
         vals = df[key].unique()
         if len(vals) < 5:
             print(key, vals)
-    
+
 def get_numtrain_to_classifier_to_field(df, key_names, return_avg_time):
     data = {}
     avg_time = {}
@@ -47,8 +47,16 @@ def get_numtrain_to_classifier_to_field(df, key_names, return_avg_time):
                 continue
             # the locations of the current experiments
             cur_locs = (df[key_names[experiment_type]] == classifier) & (df[key_names['train_num']] == train_num)
+
+            #import pdb; pdb.set_trace()
             
-            data[train_num][classifier] = df[key_names['dev_acc']][cur_locs].values.tolist()
+            if df['model.type'].str.contains('crf_tagger').all():
+                performance_measure = 'dev_f1'
+            else:
+                performance_measure = 'dev_acc'
+
+                
+            data[train_num][classifier] = df[key_names[performance_measure]][cur_locs].values.tolist()
 
             avg_time[train_num][classifier] = df[key_names['duration']][cur_locs].mean()
             
@@ -60,10 +68,10 @@ def get_numtrain_to_classifier_to_field(df, key_names, return_avg_time):
                 
     return data, avg_time, lr_acc
 
-
 def get_key_names():
     return {'duration':'training_duration',
             'dev_acc':'best_validation_accuracy',
+            'dev_f1':'best_validation_f1-measure-overall',
             'classifier':'model.encoder.architecture.type',
             'embedding':'embedding',
             'train_num':'dataset_reader.sample',
@@ -73,8 +81,10 @@ def get_key_names():
     }
 
 def main():
-    data = from_file("sst2_biattentive_elmo_transformer", return_avg_time=True)
+    data = from_file("ner_incomplete", return_avg_time=True)
+    print(data[1])
     import pdb; pdb.set_trace()
+
     print(data)
 
 if __name__ == '__main__':
