@@ -8,7 +8,9 @@
 // with test set F1 of 92.51 compared to the single model reported
 // result of 92.22 +/- 0.10.
 {
-
+   "numpy_seed": std.extVar("SEED"),
+   "pytorch_seed": std.extVar("SEED"),
+   "random_seed": std.extVar("SEED"),
   "dataset_reader": {
     "type": "conll2003",
     "tag_label": "ner",

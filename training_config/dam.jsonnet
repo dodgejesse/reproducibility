@@ -1,6 +1,9 @@
 // Configuraiton for a textual entailment model based on:
 //  Parikh, Ankur P. et al. “A Decomposable Attention Model for Natural Language Inference.” EMNLP (2016).
 {
+  "numpy_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("SEED"),
+  "random_seed": std.extVar("SEED"),
   "dataset_reader": {
     "type": "snli",
     "token_indexers": {
@@ -13,9 +16,9 @@
       "end_tokens": ["@@NULL@@"]
     }
   },
-  "train_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/snli/snli_1.0_train.jsonl",
-  "validation_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/snli/snli_1.0_dev.jsonl",
-  "test_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/snli/snli_1.0_test.jsonl",
+  "train_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/snli_format/scitail_1.0_train.txt",
+  "validation_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/snli_format/scitail_1.0_dev.txt",
+  "test_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/snli_format/scitail_1.0_test.txt",
   "evaluate_on_test": std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1,
   "model": {
     "type": "decomposable_attention",
@@ -48,7 +51,7 @@
     "aggregate_feedforward": {
       "input_dim": std.parseInt(std.extVar("COMPARE_FEEDFORWARD_HIDDEN_DIMS")) * 2,
       "num_layers": std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_NUM_LAYERS")) + 1,
-      "hidden_dims": std.makeArray(std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_NUM_LAYERS")), function(i) std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_HIDDEN_DIMS"))) + [3],
+      "hidden_dims": std.makeArray(std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_NUM_LAYERS")), function(i) std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_HIDDEN_DIMS"))) + [2],
       "activations": std.makeArray(std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_NUM_LAYERS")), function(i) std.extVar("AGGREGATE_FEEDFORWARD_ACTIVATION")) + ["linear"],
       "dropout": std.makeArray(std.parseInt(std.extVar("AGGREGATE_FEEDFORWARD_NUM_LAYERS")), function(i) std.extVar("AGGREGATE_FEEDFORWARD_DROPOUT")) + ["0.0"]
     },
@@ -69,6 +72,7 @@
     "cuda_device": std.parseInt(std.extVar("CUDA_DEVICE")),
     "grad_clipping": std.extVar("GRAD_CLIP"),
     "validation_metric": "+accuracy",
+    "num_serialized_models_to_keep": 1,
     "optimizer": {
       "type": "adagrad",
       "lr": std.extVar("LEARNING_RATE")

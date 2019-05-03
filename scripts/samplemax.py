@@ -1,8 +1,51 @@
 # this module will compute the distribution of the max, and also the expected value of the max, of a set of samples
 # which were drawn IID from a distribution.
 
-import load_data
+from scripts import load_data
 import scipy.special
+import numpy as np
+
+# used to check the bootstrap approximates the mean and var we compute exactly.
+def compute_bootstrap(data_name):
+    data = load_data.from_file(data_name, return_avg_time = True)
+
+    classifier_to_performance = data[0][6919]
+
+    # just for comparison:
+    closed_form_mean_var, avg_times = compute_sample_maxes(data_name, True, True)
+
+    c_to_means = {}
+    c_to_vars = {}
+    for num_samples in [50000]:
+        for classifier in classifier_to_performance:
+            bootstrap_means = []
+            bootstrap_vars = []
+            for n in range(len(classifier_to_performance[classifier])):
+                cur_mean, cur_std = draw_bootstrap_samples(classifier_to_performance[classifier], n+1, num_samples)
+                bootstrap_means.append(cur_mean)
+                bootstrap_vars.append(cur_std)
+
+
+            c_to_means[classifier] = bootstrap_means
+            c_to_vars[classifier] = bootstrap_vars
+
+            #print(closed_form[0][6919][classifier])
+            #print(bootstrap_vals)
+            #diffs = [closed_form[0][6919][classifier][i] - bootstrap_means[i] for i in range(len(bootstrap_means))]
+            #print(sum(abs(np.asarray(diffs))))
+                        
+            #print(diffs)
+            
+    import pdb; pdb.set_trace()
+    
+
+def draw_bootstrap_samples(cur_data, n, num_samples):
+
+    samples = np.random.choice(cur_data, (num_samples, n))
+    maxes = np.max(samples, 1)
+    return np.mean(maxes), np.std(maxes)
+
+    
 
 def compute_sample_maxes(data_name = "sst2", with_replacement = True, return_avg_time = False):
 
@@ -16,7 +59,6 @@ def compute_sample_maxes(data_name = "sst2", with_replacement = True, return_avg
         if data_size not in sample_maxes:
             sample_maxes[data_size] = {}
         for classifier in data[data_size]:
-
             sample_maxes[data_size][classifier] = sample_max(data[data_size][classifier], with_replacement)
     #import pdb; pdb.set_trace()
     if return_avg_time:
@@ -56,7 +98,12 @@ def sample_max(cur_data, with_replacement):
         for i in range(N):
             cur_expected += cur_data[i] * pdfs[n][i]
         expected_max_cond_n.append(cur_expected)
-    return expected_max_cond_n
+
+
+    var_of_max_cond_n = compute_variance(N, cur_data, expected_max_cond_n, pdfs)
+
+        
+    return {"mean":expected_max_cond_n, "var":var_of_max_cond_n}
 
 def cdf_with_replacement(i,n,N):
     return (i/N)**n
@@ -65,8 +112,30 @@ def cdf_without_replacement(i,n,N):
     
     return scipy.special.comb(i,n) / scipy.special.comb(N,n)
 
+# this computes the standard error of the max.
+# this is what the std dev of the bootstrap estimates of the mean of the max converges to, as
+# is stated in the last sentence of the summary on page 10 of http://www.stat.cmu.edu/~larry/=stat705/Lecture13.pdf
+# uses equation 
+def compute_variance(N, cur_data, expected_max_cond_n, pdfs):
+    variance_of_max_cond_n = []
+    for n in range(N):
+        # for a given n, estimate variance with \sum(p(x) * (x-mu)^2), where mu is \sum(p(x) * x).
+        cur_var = 0
+        for i in range(N):
+            cur_var += (cur_data[i] - expected_max_cond_n[n])**2 * pdfs[n][i]
+        cur_var = np.sqrt(cur_var)
+
+        variance_of_max_cond_n.append(cur_var)
+
+    return variance_of_max_cond_n
+    
+
 if __name__ == '__main__':
-    s_maxes = compute_sample_maxes("sst2", False, True)
+    #bootstrap_results = compute_bootstrap("sst2_biattentive_elmo_transformer")
+    
+
+    
+    s_maxes = compute_sample_maxes("sst2", True, True)
     import pdb; pdb.set_trace()
 
     

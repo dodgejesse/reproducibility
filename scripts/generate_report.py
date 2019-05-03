@@ -19,7 +19,18 @@ def get_argument_parser() -> Optional[argparse.ArgumentParser]:
         required=False,
         type=int
     )
-    
+    parser.add_argument(
+        '--performance_metric',
+        required=False,
+        type=str
+    )
+    parser.add_argument(
+        '--embedding',
+        required=False,
+        type=str
+    )
+
+
     return parser
 
 if __name__ == '__main__':
@@ -42,13 +53,13 @@ if __name__ == '__main__':
     master_dicts = [dict(ChainMap(*item)) for item in master]
 
     df = pd.io.json.json_normalize(master_dicts)
-    df['model.encoder.architecture.type'] = df['model.encoder.architecture.type'].fillna("linear")
     df['training_duration'] = pd.to_timedelta(df['training_duration']).dt.total_seconds()
     if args.throttle:
         df['dataset_reader.sample'] = args.throttle
+    if args.embedding:
+        df['embedding'] = args.embedding
     output_file = os.path.join(experiment_dir, "results.tsv")
     df.to_csv(output_file, sep='\t')
     print("results written to {}".format(output_file))
     print(f"total experiments: {df.shape[0]}")
-    print(f"best models:\n{df.groupby('model.encoder.architecture.type').best_validation_accuracy.max()}")
-    print(f"number of assignments:\n{df['model.encoder.architecture.type'].value_counts()}")
+    print(f"best perf: {df[args.performance_metric].max()}")

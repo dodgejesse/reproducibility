@@ -2,6 +2,9 @@
 //   Seo, Min Joon et al. "Bidirectional Attention Flow for Machine Comprehension."
 //   ArXiv/1611.01603 (2016)
 {
+  "numpy_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("SEED"),
+  "random_seed": std.extVar("SEED"),
   "dataset_reader": {
     "type": "squad",
     "token_indexers": {

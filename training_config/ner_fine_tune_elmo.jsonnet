@@ -8,7 +8,9 @@
 // with test set F1 of 92.51 compared to the single model reported
 // result of 92.22 +/- 0.10.
 {
-
+  "numpy_seed": std.extVar("SEED"),
+  "pytorch_seed": std.extVar("SEED"),
+  "random_seed": std.extVar("SEED"),
   "dataset_reader": {
     "type": "conll2003",
     "tag_label": "ner",
@@ -24,7 +26,7 @@
   "test_data_path": "s3://suching-dev/ner-2003/test.txt",
   "evaluate_on_test": std.parseInt(std.extVar("EVALUATE_ON_TEST")) == 1,
   "model": {
-    "type": "crf_tagger_elmo",
+    "type": "crf_tagger",
     "label_encoding": "BIOUL",
     "dropout": std.extVar("DROPOUT"),
     "include_start_end_transitions": false,
@@ -39,6 +41,14 @@
             "requires_grad": true
         }
       }
+    },
+    "encoder": {
+      "type": "lstm",
+      "input_size": 1024,
+      "hidden_size": std.parseInt(std.extVar("ENCODER_HIDDEN_SIZE")),
+      "num_layers": std.parseInt(std.extVar("NUM_ENCODER_LAYERS")),
+      "dropout": std.extVar("ENCODER_DROPOUT"),
+      "bidirectional": true
     },
     "regularizer": [
       [
@@ -61,9 +71,9 @@
     },
     "validation_metric": "+f1-measure-overall",
     "num_serialized_models_to_keep": 1,
-    "num_epochs": 75,
+    "num_epochs": 20,
     "grad_norm": std.extVar("GRAD_NORM"),
-    "patience": 25,
+    "patience": 5,
     "learning_rate_scheduler": {
         "type": "reduce_on_plateau",
         "factor": 0.5,

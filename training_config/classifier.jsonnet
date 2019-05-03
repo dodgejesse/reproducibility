@@ -6,9 +6,9 @@ local CUDA_DEVICE = std.parseInt(std.extVar("CUDA_DEVICE"));
 
 
 // Paths to data.
-local TRAIN_PATH = std.extVar("DATA_DIR") + "train.txt";
-local DEV_PATH =  std.extVar("DATA_DIR") + "dev.txt";
-local TEST_PATH =  std.extVar("DATA_DIR") + "test.txt";
+local TRAIN_PATH = std.extVar("DATA_DIR") + "train_pretokenized.jsonl";
+local DEV_PATH =  std.extVar("DATA_DIR") + "dev_pretokenized.jsonl";
+local TEST_PATH =  std.extVar("DATA_DIR") + "test_pretokenized.jsonl";
 
 // Throttle the training data to a random subset of this length.
 local THROTTLE = std.extVar("THROTTLE");
@@ -346,6 +346,7 @@ local VAMPIRE_TRAINABLE = if std.count(FREEZE_EMBEDDINGS, "VAMPIRE") > 0 == fals
 local RANDOM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "RANDOM") > 0 then RANDOM_FIELDS(RANDOM_TRAINABLE)['random_indexer'] else {};
 
 local VAMPIRE_TOKEN_INDEXER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['vampire_indexer'] else {};
+local BOW_TOKEN_INDEXER = if std.count(EMBEDDINGS, "BOW_COUNTS") > 0 then BOW_COUNT_FIELDS['bow_indexer'] else {};
 
 
 local ELMO_LSTM_TOKEN_INDEXER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['elmo_lstm_indexer'] else {};
@@ -368,7 +369,8 @@ local TOKEN_INDEXERS = ELMO_LSTM_TOKEN_INDEXER
                        + CHAR_AVERAGE_TOKEN_INDEXER
                        + GLOVE_TOKEN_INDEXER
                        + ELMO_TRANSFORMER_TOKEN_INDEXER
-                       + VAMPIRE_TOKEN_INDEXER;
+                       + VAMPIRE_TOKEN_INDEXER
+                       + BOW_TOKEN_INDEXER;
 
 local ELMO_LSTM_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['elmo_lstm_embedder'] else {};
 local BERT_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['bert_embedder'] else {};
@@ -380,6 +382,7 @@ local CHAR_AVERAGE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "CHAR_AVERAGE") > 0
 local GLOVE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "GLOVE") > 0 then GLOVE_FIELDS(GLOVE_TRAINABLE)['glove_embedder'] else {};
 local ELMO_TRANSFORMER_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "ELMO_TRANSFORMER") > 0 then ELMO_TRANSFORMER_FIELDS(ELMO_TRANSFORMER_TRAINABLE)['elmo_transformer_embedder'] else {};
 local VAMPIRE_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "VAMPIRE") > 0 then VAMPIRE_FIELDS(VAMPIRE_TRAINABLE)['vampire_embedder'] else {};
+local BOW_TOKEN_EMBEDDER = if std.count(EMBEDDINGS, "BOW_COUNTS") > 0 then BOW_COUNT_FIELDS['bow_embedder'] else {};
 
 local TOKEN_EMBEDDERS = ELMO_LSTM_TOKEN_EMBEDDER
                        + BERT_TOKEN_EMBEDDER
@@ -390,7 +393,8 @@ local TOKEN_EMBEDDERS = ELMO_LSTM_TOKEN_EMBEDDER
                        + CHAR_AVERAGE_TOKEN_EMBEDDER
                        + GLOVE_TOKEN_EMBEDDER
                        + ELMO_TRANSFORMER_TOKEN_EMBEDDER
-                       + VAMPIRE_TOKEN_EMBEDDER;
+                       + VAMPIRE_TOKEN_EMBEDDER
+                       + BOW_TOKEN_EMBEDDER;
 
 local ELMO_LSTM_EMBEDDING_DIM = if std.count(EMBEDDINGS, "ELMO_LSTM") > 0 then ELMO_LSTM_FIELDS(ELMO_LSTM_TRAINABLE)['embedding_dim'] else 0;
 local BERT_EMBEDDING_DIM = if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS(BERT_TRAINABLE)['embedding_dim'] else 0;
@@ -432,10 +436,11 @@ local BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASE
   "sample": THROTTLE,
 };
 
-local SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER) = {
+local SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_SUBTREES, USE_LAZY_DATASET_READER) = {
   "lazy": USE_LAZY_DATASET_READER,
   "type": "sst_tokens",
   "granularity": "2-class",
+  "use_subtrees": USE_SUBTREES,
   // "tokenizer": {
   //   "word_splitter": if USE_SPACY_TOKENIZER == 1 then "spacy" else "just_spaces",
   // },
@@ -446,24 +451,23 @@ local SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET
    "numpy_seed": std.extVar("SEED"),
    "pytorch_seed": std.extVar("SEED"),
    "random_seed": std.extVar("SEED"),
-   "dataset_reader": SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
-   "validation_dataset_reader": SST_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
-  // NOTE: we are assuming that vocabulary is created from both train, dev, and test. 
-  // Our data splitting should ensure that there is no overlap between these splits.
-  //  "datasets_for_vocab_creation": ["train"],
+  "dataset_reader": BASE_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+  "validation_dataset_reader": BASE_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, USE_LAZY_DATASET_READER),
+  //  "dataset_reader": SST_READER(TOKEN_INDEXERS, THROTTLE, USE_SPACY_TOKENIZER, true, USE_LAZY_DATASET_READER),
+  //  "validation_dataset_reader": SST_READER(TOKEN_INDEXERS, null, USE_SPACY_TOKENIZER, false, USE_LAZY_DATASET_READER),
    "train_data_path": TRAIN_PATH,
    "validation_data_path": DEV_PATH,
    "test_data_path": if EVALUATE_ON_TEST then TEST_PATH else null,
+  // "train_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/sst/train.txt",
+  // "validation_data_path": "https://s3-us-west-2.amazonaws.com/allennlp/datasets/sst/dev.txt",
+  // "test_data_path": if EVALUATE_ON_TEST then "https://s3-us-west-2.amazonaws.com/allennlp/datasets/sst/test.txt" else null,
    "evaluate_on_test": EVALUATE_ON_TEST,
-   "vocabulary": {
-     "max_vocab_size": 10000
-   },
    "model": {
       "type": "classifier",
       "input_embedder": {
                 "token_embedders": TOKEN_EMBEDDERS
       } + if std.count(EMBEDDINGS, "BERT") > 0 then BERT_FIELDS['extra_embedder_fields'] else {},
-      "encoder": ENCODER,
+      "encoder": if std.count(EMBEDDINGS, "BOW_COUNTS") == 0 then ENCODER else null,
       "dropout": DROPOUT
    },	
     "iterator": {
