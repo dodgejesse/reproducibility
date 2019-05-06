@@ -328,7 +328,7 @@ DGEM_SEARCH = {
 BIDAF_SEARCH = {
         "CUDA_DEVICE": 0,
         "EVALUATE_ON_TEST": 1,
-        "SEED": RandomSearch.random_integer(0, 100),
+        "SEED": RandomSearch.random_integer(0, 10000),
         "LEARNING_RATE": RandomSearch.random_loguniform(1e-6, 1e-1),
         "ALPHA": RandomSearch.random_loguniform(1e-3, 1),
         "DROPOUT": RandomSearch.random_uniform(0, 0.5),

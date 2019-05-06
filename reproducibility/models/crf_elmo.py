@@ -72,6 +72,7 @@ class CrfTaggerElmo(Model):
                  constrain_crf_decoding: bool = None,
                  calculate_span_f1: bool = None,
                  dropout: Optional[float] = None,
+                 projection_layer_input_dim: int = 1024,
                  verbose_metrics: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
@@ -85,7 +86,7 @@ class CrfTaggerElmo(Model):
             self.dropout = torch.nn.Dropout(dropout)
         else:
             self.dropout = None
-        self.tag_projection_layer = TimeDistributed(Linear(1024,
+        self.tag_projection_layer = TimeDistributed(Linear(projection_layer_input_dim,
                                                            self.num_tags))
 
         # if  constrain_crf_decoding and calculate_span_f1 are not
@@ -124,12 +125,6 @@ class CrfTaggerElmo(Model):
             self._f1_metric = SpanBasedF1Measure(vocab,
                                                  tag_namespace=label_namespace,
                                                  label_encoding=label_encoding)
-
-        check_dimensions_match(text_field_embedder.get_output_dim(), 1024,
-                               "text field embedding dim", "encoder input dim")
-        if feedforward is not None:
-            check_dimensions_match(1024, feedforward.get_input_dim(),
-                                   "encoder output dim", "feedforward input dim")
         initializer(self)
 
     @overrides

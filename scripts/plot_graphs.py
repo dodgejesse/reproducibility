@@ -16,14 +16,18 @@ linestyle = ['-', '--']
 # data_name = collections.OrderedDict({"ag_1":"AG"})
 # data_name = collections.OrderedDict({"imdb_final":"IMDB", "ag_1":"AG"})
 # data_name = collections.OrderedDict({"sst5_cnn_lr":"SST5", "imdb_final":"IMDB"})
-data_name = collections.OrderedDict({"sst_lstm_updated":"SST LSTM", "sst2_biattentive_classifier":"SST biattentive"})
+# data_name = collections.OrderedDict({"sst_lstm_updated":"SST LSTM", "sst2_biattentive_classifier":"SST biattentive"})
 
 
-def plot_section1(plot_errorbar, x_axis_time):
-    data_name = collections.OrderedDict({"sst5_cnn_lr":"SST5", "imdb_final":"IMDB"})
+def plot_bert_on_stilts_full(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"bert_large_cola_full":"CoLA", 
+                                         "bert_large_mrpc_full": "MRPC",
+                                         "bert_large_rte_full": "RTE",
+                                         "bert_large_stsb_full": "STS-B",
+                                         })
 
     x_axis_time = False
-    data, avg_time = get_data()
+    data, avg_time = get_data(data_name)
     
     fig = plt.figure()
 
@@ -33,7 +37,272 @@ def plot_section1(plot_errorbar, x_axis_time):
     sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
     counter = 0
 
-    f, axes = plt.subplots(2, 1, figsize=(4.5,7))
+    f, axes = plt.subplots(2, 2, figsize=(14, 14))
+
+    for (fn, name), ((x,y), _) in zip(data_name.items(), np.ndenumerate(axes)):
+
+        one_plot(data[fn][10000],
+                 avg_time[fn][10000],
+                 10000,
+                 axes[x,y],
+                 name + " Full",
+                 0,
+                 xlim=[0, 20],
+                 classifiers=['BERT Large', 'BERT Large MNLI'],
+                 plot_errorbar=False,
+                 legend_loc='lower right',
+                 logx=False,
+                 fontsize=24,
+                 x_axis_time=x_axis_time)
+
+    
+
+    classifiers = get_classifiers(data[list(data.keys())[0]])
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+
+
+def plot_bert_on_stilts_5k(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"cola_5k":"CoLA", 
+                                         "mrpc_5k": "MRPC",
+                                         "rte_5k": "RTE",
+                                         "stsb_5k": "STS-B",
+                                         "mnli_5k": "MNLI",
+                                         "qnli_5k": "QNLI",
+                                         "wnli_5k": "WNLI",
+                                         "qqp_5k": "QQP",
+                                         "sst2_5k": "SST2",
+                                         })
+    x_axis_time = False
+    data, avg_time = get_data(data_name)
+    
+    fig = plt.figure()
+
+    data_sizes = list(data[list(data.keys())[0]].keys())
+    data_sizes.sort()
+
+    sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
+    counter = 0
+
+    f, axes = plt.subplots(3, 3, figsize=(20, 20))
+
+    for (fn, name), ((x,y), _) in zip(data_name.items(), np.ndenumerate(axes)):
+
+        one_plot(data[fn][10000],
+                 avg_time[fn][10000],
+                 10000,
+                 axes[x,y],
+                 name + " 5K",
+                 0,
+                 xlim=[0, 20],
+                 classifiers=['BERT Large', 'BERT Large MNLI'],
+                 plot_errorbar=False,
+                 legend_loc='lower right',
+                 logx=False,
+                 fontsize=24,
+                 x_axis_time=x_axis_time)
+
+    
+
+    classifiers = get_classifiers(data[list(data.keys())[0]])
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+
+
+
+def plot_bert_on_stilts_1k(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"cola_1k":"CoLA", 
+                                         "mrpc_1k": "MRPC",
+                                         "rte_1k": "RTE",
+                                         "stsb_1k": "STS-B",
+                                         "mnli_1k": "MNLI",
+                                         "qnli_1k": "QNLI",
+                                         "wnli_1k": "WNLI",
+                                         "qqp_1k": "QQP",
+                                         "sst2_1k": "SST2",
+
+
+                                         })
+
+    x_axis_time = False
+    data, avg_time = get_data(data_name)
+    
+    fig = plt.figure()
+
+    data_sizes = list(data[list(data.keys())[0]].keys())
+    data_sizes.sort()
+
+    sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
+    counter = 0
+
+    f, axes = plt.subplots(3, 3, figsize=(20, 20))
+
+    for (fn, name), ((x,y), _) in zip(data_name.items(), np.ndenumerate(axes)):
+
+        one_plot(data[fn][10000],
+                 avg_time[fn][10000],
+                 10000,
+                 axes[x,y],
+                 name + " 1K",
+                 0,
+                 xlim=[0, 20],
+                 classifiers=['BERT Large', 'BERT Large MNLI'],
+                 plot_errorbar=False,
+                 legend_loc='lower right',
+                 logx=False,
+                 fontsize=24,
+                 x_axis_time=x_axis_time)
+
+    # one_plot(data["bert_large_mrpc_1k"][10000],
+    #          avg_time["bert_large_mrpc_1k"][10000],
+    #          10000,
+    #          axes[0,0],
+    #          "MRPC",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+    
+    # one_plot(data["bert_large_rte_1k"][10000],
+    #          avg_time["bert_large_rte_1k"][10000],
+    #          10000,
+    #          axes[0,1],
+    #          "RTE",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+    
+    # one_plot(data["bert_large_stsb_1k"][10000],
+    #          avg_time["bert_large_stsb_1k"][10000],
+    #          10000,
+    #          axes[1,0],
+    #          "STS-B",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+
+
+    classifiers = get_classifiers(data[list(data.keys())[0]])
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+
+
+def plot_bert_on_stilts_1k(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"cola_1k":"CoLA", 
+                                         "mrpc_1k": "MRPC",
+                                         "rte_1k": "RTE",
+                                         "stsb_1k": "STS-B",
+                                         "mnli_1k": "MNLI",
+                                         "qnli_1k": "QNLI",
+                                         "wnli_1k": "WNLI",
+                                         "qqp_1k": "QQP",
+                                         "sst2_1k": "SST2",
+
+
+                                         })
+
+    x_axis_time = False
+    data, avg_time = get_data(data_name)
+    
+    fig = plt.figure()
+
+    data_sizes = list(data[list(data.keys())[0]].keys())
+    data_sizes.sort()
+
+    sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
+    counter = 0
+
+    f, axes = plt.subplots(3, 3, figsize=(20, 20))
+
+    for (fn, name), ((x,y), _) in zip(data_name.items(), np.ndenumerate(axes)):
+
+        one_plot(data[fn][10000],
+                 avg_time[fn][10000],
+                 10000,
+                 axes[x,y],
+                 name + " 1K",
+                 0,
+                 xlim=[0, 20],
+                 classifiers=['BERT Large', 'BERT Large MNLI'],
+                 plot_errorbar=False,
+                 legend_loc='lower right',
+                 logx=False,
+                 fontsize=24,
+                 x_axis_time=x_axis_time)
+
+    # one_plot(data["bert_large_mrpc_1k"][10000],
+    #          avg_time["bert_large_mrpc_1k"][10000],
+    #          10000,
+    #          axes[0,0],
+    #          "MRPC",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+    
+    # one_plot(data["bert_large_rte_1k"][10000],
+    #          avg_time["bert_large_rte_1k"][10000],
+    #          10000,
+    #          axes[0,1],
+    #          "RTE",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+    
+    # one_plot(data["bert_large_stsb_1k"][10000],
+    #          avg_time["bert_large_stsb_1k"][10000],
+    #          10000,
+    #          axes[1,0],
+    #          "STS-B",
+    #          0,
+    #          xlim=[0, 20],
+    #          classifiers=['BERT', 'BERT on STILTs'],
+    #          plot_errorbar=False,
+    #          legend_loc='lower right',
+    #          logx=False,
+    #          fontsize=24,
+    #          x_axis_time=x_axis_time)
+
+
+    classifiers = get_classifiers(data[list(data.keys())[0]])
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+
+
+def plot_section1(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"sst5_cnn_lr":"SST5", "imdb_final":"IMDB"})
+
+    x_axis_time = False
+    data, avg_time = get_data(data_name)
+    
+    fig = plt.figure()
+
+    data_sizes = list(data[list(data.keys())[0]].keys())
+    data_sizes.sort()
+
+    sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
+    counter = 0
+
+    f, axes = plt.subplots(2, 1, figsize=(10,14))
 
 
     one_plot(data["sst5_cnn_lr"][8544],
@@ -47,6 +316,7 @@ def plot_section1(plot_errorbar, x_axis_time):
              plot_errorbar=False,
              legend_loc='lower right',
              logx=False,
+             fontsize=24,
              x_axis_time=x_axis_time)
 
     # one_plot(data["ag_1"][115000],
@@ -72,10 +342,11 @@ def plot_section1(plot_errorbar, x_axis_time):
              classifiers=['logistic regression', 'lstm'],
              plot_errorbar=plot_errorbar,
              legend_loc='lower right',
+             fontsize=24,
              x_axis_time=True)
 
     classifiers = get_classifiers(data[list(data.keys())[0]])
-    save_plot(data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
 
     # for data_size in data_sizes:
     #     counter += 1
@@ -224,6 +495,54 @@ def plot_section2_lstms(plot_errorbar, x_axis_time):
     classifiers = get_classifiers(data[list(data.keys())[0]])
     save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
 
+def plot_section3_bcn(plot_errorbar, x_axis_time):
+    data_name = collections.OrderedDict({"sst2_biattentive_classifier":"BCN"})
+
+    x_axis_time = False
+
+    data, avg_time = get_data(data_name)
+    
+    fig = plt.figure()
+
+    data_sizes = list(data[list(data.keys())[0]].keys())
+    data_sizes.sort()
+
+    sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
+    counter = 0
+
+    f, axes = plt.subplots(1, 1, figsize=(12,10))
+
+    one_plot(data["sst2_biattentive_classifier"][6919],
+             avg_time["sst2_biattentive_classifier"][6919],
+             6919,
+             axes,
+             "SST2",
+             0,
+             classifiers=['glove', 'elmo frozen', 'elmo fine-tuned'],
+             plot_errorbar=False,
+             encoder_name="",
+             legend_loc='lower right',
+             logx=True,
+             x_axis_time=True,
+             fontsize=24)
+
+    # one_plot(data["ag_1"][115000],
+    #          avg_time["ag_1"][115000],
+    #          115000,
+    #          axes[0],
+    #          "AG News",
+    #          0,
+    #          classifiers=['logistic regression', 'cnn'],
+    #          xlim=[0, 20],
+    #          logx=False,
+    #          plot_errorbar=plot_errorbar,
+    #          legend_loc='lower right',
+    #          x_axis_time=x_axis_time)
+
+    classifiers = get_classifiers(data[list(data.keys())[0]])
+    save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
+
+
 
 def plot_section2_ner(plot_errorbar, x_axis_time):
     data_name = collections.OrderedDict({"ner":"NER"})
@@ -273,7 +592,7 @@ def plot_section2_ner(plot_errorbar, x_axis_time):
 
 
 def plot_section3(plot_errorbar, x_axis_time):
-    data_name = collections.OrderedDict({"scitail_1":"SCITAIL"})
+    data_name = collections.OrderedDict({"scitail_2":"SCITAIL"})
 
     x_axis_time = False
 
@@ -287,18 +606,18 @@ def plot_section3(plot_errorbar, x_axis_time):
     sqrt_num_plots = int(np.ceil(np.sqrt(len(data_sizes))))
     counter = 0
 
-    f, axes = plt.subplots(1, 1, figsize=(6,8))
+    f, axes = plt.subplots(1, 1, figsize=(10,18))
 
-    one_plot(data["scitail_1"][10000],
-             avg_time["scitail_1"][10000],
+    one_plot(data["scitail_2"][10000],
+             avg_time["scitail_2"][10000],
              10000,
              axes,
              "SciTail",
              0,
-             reported_accuracy=[.65, .754, 0.705],
-             classifiers=['word overlap', 'dam', 'esim'],
+             reported_accuracy=[.65, .754, 0.705, 0.796],
+             classifiers=['word overlap', 'dam', 'esim', 'DGEM'],
              plot_errorbar=False,
-             legend_loc='lower right',
+             legend_loc='upper left',
              xlim=[1, 100],
              relabel_scalar=True,
              fontsize=24,
@@ -313,7 +632,7 @@ def plot_section3(plot_errorbar, x_axis_time):
 
 
 def plot_section3_bidaf(plot_errorbar, x_axis_time):
-    data_name = collections.OrderedDict({"bidaf":"BIDAF"})
+    data_name = collections.OrderedDict({"bidaf_master_1":"BIDAF"})
 
     x_axis_time = False
 
@@ -329,14 +648,14 @@ def plot_section3_bidaf(plot_errorbar, x_axis_time):
 
     f, axes = plt.subplots(1, 1, figsize=(8,9))
 
-    one_plot(data["bidaf"][10000],
-             avg_time["bidaf"][10000],
+    one_plot(data["bidaf_master_1"][10000],
+             avg_time["bidaf_master_1"][10000],
              10000,
              axes,
              "SQuAD",
              0,
-             reported_accuracy=[.773],
-             classifiers=['bidaf'],
+             reported_accuracy=[.677],
+             classifiers=['glove'],
              plot_errorbar=False,
              legend_loc='lower right',
              xlim=[1, 100],
@@ -407,7 +726,7 @@ def one_plot(data, avg_time, data_size, cur_ax, data_name, experiment_counter, c
     # classifiers = list(data.keys())
     max_first_point = 0
     classifier_counter = 0
-    cur_ax.set_ylabel("Validation F1", fontsize=fontsize)
+    cur_ax.set_ylabel("Validation EM", fontsize=fontsize)
     
     if x_axis_time:
         cur_ax.set_xlabel("Seconds",fontsize=fontsize)
@@ -423,7 +742,7 @@ def one_plot(data, avg_time, data_size, cur_ax, data_name, experiment_counter, c
             times = [avg_time[classifier] * (i+1) for i in range(len(cur_means))]
         else:
             times = [i+1 for i in range(len(cur_means))]
-        colors = ["#8c564b", '#1f77b4', '#ff7f0e']
+        colors = ["#8c564b", '#1f77b4', '#ff7f0e', '#17becf']
         # colors = plt.rcParams['axes.prop_cycle'].by_key()['color']
         cur_color = colors[classifier_counter]
         classifier_counter += 1
@@ -435,14 +754,14 @@ def one_plot(data, avg_time, data_size, cur_ax, data_name, experiment_counter, c
             cur_classifier_name = "n-gram baseline"
         elif classifier == 'esim':
             cur_classifier_name = "ESIM"
-        elif classifier == 'bidaf':
+        elif classifier == 'glove':
             cur_classifier_name = "BIDAF"
         else:
             cur_classifier_name = classifier
         
         if reported_accuracy:
             cur_ax.plot([0, 10000], [reported_accuracy[ix], reported_accuracy[ix]], linestyle='--', linewidth=3, color=cur_color)
-            plt.text(1.1,reported_accuracy[ix] + 0.003,f'reported {cur_classifier_name} F1', ha='left', style='italic', fontsize=fontsize-5, color=cur_color)
+            plt.text(95,reported_accuracy[ix] + 0.003,f'reported {cur_classifier_name} accuracy', ha='right', style='italic', fontsize=fontsize-5, color=cur_color)
 
         if encoder_name:
             cur_classifier_name = encoder_name + " " + cur_classifier_name

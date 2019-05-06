@@ -31,12 +31,13 @@ def get_numtrain_to_classifier_to_field(df, key_names, return_avg_time):
     data = {}
     avg_time = {}
     lr_acc = {}
-    # import pdb; pdb.set_trace()
+
     for train_num in df[key_names['train_num']].unique():
         if train_num not in data:
             data[train_num] = {}
             avg_time[train_num] = {}
             lr_acc[train_num] = {}
+        
         if key_names['classifier'] in df and len(df[key_names['classifier']].unique()) > 1:
             experiment_type = 'classifier'
         else:
