@@ -592,7 +592,7 @@ def plot_section2_ner(plot_errorbar, x_axis_time):
 
 
 def plot_section3(plot_errorbar, x_axis_time):
-    data_name = collections.OrderedDict({"scitail_2":"SCITAIL"})
+    data_name = collections.OrderedDict({"scitail_3":"SCITAIL"})
 
     x_axis_time = False
 
@@ -608,8 +608,8 @@ def plot_section3(plot_errorbar, x_axis_time):
 
     f, axes = plt.subplots(1, 1, figsize=(10,18))
 
-    one_plot(data["scitail_2"][10000],
-             avg_time["scitail_2"][10000],
+    one_plot(data["scitail_3"][10000],
+             avg_time["scitail_3"][10000],
              10000,
              axes,
              "SciTail",
