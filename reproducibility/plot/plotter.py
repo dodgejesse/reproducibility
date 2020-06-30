@@ -4,6 +4,7 @@ import os
 import sys
 import scipy
 from typing import Dict, List, Tuple
+from labellines import labelLine, labelLines
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -11,6 +12,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 from matplotlib.ticker import ScalarFormatter
+import datetime
 
 sns.set_style("white")
 
@@ -83,10 +85,36 @@ class Plotter:
 
         var_of_max_cond_n = self._compute_variance(N, validation_performance, expected_max_cond_n, pdfs)
 
-        return {"mean":expected_max_cond_n, "var":var_of_max_cond_n}
+        return {"mean":expected_max_cond_n, "var":var_of_max_cond_n, "max": np.max(validation_performance)}
 
     @staticmethod
-    def _one_plot(data: pd.DataFrame,
+    def td_format(td_object):
+        seconds = int(td_object.total_seconds())
+        periods = [
+            ('yr',        60*60*24*365),
+            ('mo',       60*60*24*30),
+            ('d',         60*60*24),
+            ('h',        60*60),
+            ('min',      60),
+            ('sec',      1)
+        ]
+        strings=[]
+        for period_name, period_seconds in periods:
+            if seconds > period_seconds:
+                period_value , seconds = divmod(seconds, period_seconds)
+                has_s = 's' if period_value > 1 and period_name not in ['min', 'sec', 'd', 'h'] else ''
+                strings.append("%s%s%s" % (period_value, period_name, has_s))
+        res = ", ".join(strings)
+        if res == '60min':
+            res = '1h'
+        elif res == '24h':
+            res = '1d'
+        elif res == '30d':
+            res = '1mo'
+        return res
+
+    def _one_plot(self,
+                data: pd.DataFrame,
                 avg_time: pd.DataFrame,
                 data_size: int,
                 cur_ax: matplotlib.axis,
@@ -96,17 +124,25 @@ class Plotter:
                 logx: bool = False,
                 plot_errorbar: bool = False,
                 errorbar_kind: str = 'shade',
+                errorbar_alpha: float = 0.1,
                 x_axis_time: bool = False,
                 legend_loc: str = 'lower right',
+                markers: List[str] = None,
+                markersize : int = None,
                 relabel_logx_scalar: List[int] = None,
                 rename_labels: Dict[str, str] = None,
                 reported_accuracy: List[float] = None,
                 encoder_name: str = None,
+                show_xticks: bool = False,
+                xticks_to_show: List[int] = None,
                 fontsize: int = 16,
                 xlim: List[int] = None,
+                ylim: List[int] = None,
                 model_order: List[str] = None,
                 performance_metric: str = "accuracy",
-                colors: List[str] = ["#8c564b", '#1f77b4', '#ff7f0e', '#17becf']):
+                rot: int = 0,
+                line_colors: List[str] = ["#8c564b", '#1f77b4', '#ff7f0e', '#17becf'],
+                errorbar_colors: List[str] = ['#B22222', "#089FFF", "#228B22"]):
     
         cur_ax.set_title(data_name, fontsize=fontsize)
         if model_order:
@@ -115,10 +151,10 @@ class Plotter:
             models = data.index.levels[0].tolist()
             models.sort()
         max_first_point = 0
-        cur_ax.set_ylabel("Validation " + performance_metric, fontsize=fontsize)
+        cur_ax.set_ylabel("Expected validation " + performance_metric, fontsize=fontsize)
         
         if x_axis_time:
-            cur_ax.set_xlabel("Seconds",fontsize=fontsize)
+            cur_ax.set_xlabel("Training duration",fontsize=fontsize)
         else:
             cur_ax.set_xlabel("Hyperparameter assignments",fontsize=fontsize)
         
@@ -126,73 +162,106 @@ class Plotter:
             cur_ax.set_xscale('log')
         
         for ix, model in enumerate(models):
-            cur_means = data[model]['mean']
-            cur_vars = data[model]['var']
-            
+            means = data[model]['mean']
+            vars = data[model]['var']
+            max_acc = data[model]['max']
             if x_axis_time:
-                x_axis = [avg_time[model] * (i+1) for i in range(len(cur_means))]
+                x_axis = [avg_time[model] * (i+1) for i in range(len(means))]
             else:
-                x_axis = [i+1 for i in range(len(cur_means))]
+                x_axis = [i+1 for i in range(len(means))]
 
             if rename_labels:
                 model_name = rename_labels.get(model, model)
             else:
                 model_name = model
             if reported_accuracy:
-                cur_ax.plot([0, 10000],
+                cur_ax.plot([0, 100],
                             [reported_accuracy[model],
                             reported_accuracy[model]],
                             linestyle='--',
                             linewidth=linewidth,
-                            color=colors[ix])
-                plt.text(95,
-                        reported_accuracy[model] + 0.003,
-                        f'reported {model_name} accuracy',
+                            color=line_colors[ix])
+                plt.text(100 - 3,
+                        reported_accuracy[model] - 0.004,
+                        f'reported {model_name} {performance_metric}',
                         ha='right',
                         style='italic',
                         fontsize=fontsize-5,
-                        color=colors[ix])
+                        color=line_colors[ix])
+
+                # cur_ax.plot([0, 6.912e+6],
+                #             [reported_accuracy[model],
+                #             reported_accuracy[model]],
+                #             linestyle='--',
+                #             linewidth=linewidth,
+                #             color=line_colors[ix])
+                # plt.text(6.912e+6-3600000,
+                #         reported_accuracy[model] + 0.01,
+                #         f'reported {model_name} {performance_metric}',
+                #         ha='right',
+                #         style='italic',
+                #         fontsize=fontsize-5,
+                #         color=line_colors[ix])
 
             if encoder_name:
                 model_name = encoder_name + " " + model_name
 
             if plot_errorbar:
                 if errorbar_kind == 'shade':
+                    minus_vars = np.array(means)-np.array(vars)
+                    plus_vars = [x + y if (x + y) <= max_acc else max_acc for x,y in zip(means, vars)]
                     plt.fill_between(x_axis,
-                                    np.array(cur_means)-np.array(cur_vars),
-                                    np.array(cur_means)+np.array(cur_vars),
-                                    edgecolor='#1B2ACC',
-                                    facecolor='#089FFF')
+                                     minus_vars,
+                                     plus_vars,
+                                     alpha=errorbar_alpha,
+                                     facecolor=errorbar_colors[ix])
                 else:
                     line = cur_ax.errorbar(x_axis,
-                                    cur_means,
-                                    yerr=cur_vars,
+                                    means,
+                                    yerr=vars,
                                     label=model_name,
                                     linestyle=linestyle,
                                     linewidth=linewidth,
-                                    color=colors[ix])
-            else:
-                line = cur_ax.plot(x_axis,
-                            cur_means,
-                            label=model_name,
-                            linestyle=linestyle,
-                            linewidth=linewidth,
-                            color=colors[ix])
-        
+                                    color=line_colors[ix])
+            line = cur_ax.plot(x_axis,
+                                means,
+                                marker=markers[ix],
+                                markevery=0.1,
+                                markersize=markersize,
+                                label=model_name,
+                                linestyle=linestyle,
+                                linewidth=linewidth,
+                                color=line_colors[ix])
+            # labelLine(line[0], x=inline_label_loc[ix],)
         left, right = cur_ax.get_xlim()
+        if ylim:
+            cur_ax.set_ylim(ylim)
         if xlim:
             cur_ax.set_xlim(xlim)
-            cur_ax.xaxis.set_ticks(np.arange(xlim[0], xlim[1]+5, 10))
+            # cur_ax.xaxis.set_ticks(np.arange(xlim[0], xlim[1]+5, 10))
         for tick in cur_ax.xaxis.get_major_ticks():
             tick.label.set_fontsize(fontsize) 
         for tick in cur_ax.yaxis.get_major_ticks():
             tick.label.set_fontsize(fontsize) 
-        plt.locator_params(axis='y', nbins=5)
+        plt.locator_params(axis='y', nbins=10)
         if relabel_logx_scalar:
             for axis in [cur_ax.xaxis]:
                 axis.set_ticks(relabel_logx_scalar)
                 axis.set_major_formatter(ScalarFormatter())
-
+        plt.xticks(rotation=rot)
+        
+        if show_xticks:
+            cur_ax.tick_params(which="both", bottom=True)
+        if xticks_to_show:
+            for axis in [cur_ax.xaxis]:
+                axis.set_ticks(xticks_to_show)
+        if x_axis_time:
+            def timeTicks(x, pos):                                                                                                                                                                                                                                                         
+                d = datetime.timedelta(seconds=float(x))
+                d = self.td_format(d)
+                return str(d)                                                                                                                                                                                                                                                          
+            formatter = matplotlib.ticker.FuncFormatter(timeTicks)                                                                                                                                                                                                                         
+            cur_ax.xaxis.set_major_formatter(formatter)
         cur_ax.legend(loc=legend_loc, fontsize=fontsize)
         
         plt.tight_layout()

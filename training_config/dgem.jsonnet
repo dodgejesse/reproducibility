@@ -19,6 +19,7 @@
   "train_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/dgem_format/scitail_1.0_structure_train.tsv",
   "validation_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/dgem_format/scitail_1.0_structure_dev.tsv",
   "test_data_path": "/home/suching/reproducibility/scitail/SciTailV1.1/dgem_format/scitail_1.0_structure_test.tsv",
+  "evaluate_on_test": true,
     "model": {
         "type": "tree_attention",
         "use_encoding_for_node": false,

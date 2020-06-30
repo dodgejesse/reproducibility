@@ -37,11 +37,8 @@ if __name__ == '__main__':
     train = pd.read_json(args.input, lines=True)
     df = pd.DataFrame()
     print("creating feature matrix...")
-    # vect = CountVectorizer(stop_words='english',lowercase=True, max_features=10000)
-    # X_train = vect.fit_transform(train.text)
-    # X_dev = vect.fit_transform(dev.text)
     master = pd.concat([train, dev], 0)    
-    # X_train, X_dev, y_train, y_dev = train_test_split(master_counts, master.label, stratify=master['is_train'])
+
     print("done!")
     pbar = tqdm(range(args.num_assignments))
     for i in pbar:
@@ -80,6 +77,9 @@ if __name__ == '__main__':
         sub_df = pd.DataFrame(sample)
         sub_df['accuracy'] = classifier.score(X_dev, dev.label)
         sub_df['training_duration'] = end - start
+        sub_df['ngram_range'] = str(ngram_range)
+        sub_df['weight'] = weight
+        sub_df['stopwords'] = stop_words
         df = pd.concat([df, sub_df], 0)
         best_trial = df.reset_index().iloc[df.reset_index().accuracy.idxmax()]
         pbar.set_description(f"best accuracy: {best_trial['accuracy']}")

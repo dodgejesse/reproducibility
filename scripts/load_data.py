@@ -6,7 +6,7 @@ classifiers_to_skip = []
 def from_file(data_name = "hatespeech", return_lr_acc=False, return_avg_time=False):
 
     key_names = get_key_names()
-    filename = "/Users/suching/Github/reproducibility/final_results/{}_search.{}".format(data_name, key_names["sep_name"])
+    filename = "/Users/suching/Github/reproducibility/camera_ready_results/{}_search.{}".format(data_name, key_names["sep_name"])
 
     
     df = pandas.read_csv(filename, sep=key_names['sep'])

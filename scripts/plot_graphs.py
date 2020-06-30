@@ -289,7 +289,7 @@ def plot_bert_on_stilts_1k(plot_errorbar, x_axis_time):
 
 
 def plot_section1(plot_errorbar, x_axis_time):
-    data_name = collections.OrderedDict({"sst5_cnn_lr":"SST5", "imdb_final":"IMDB"})
+    data_name = collections.OrderedDict({"sst5_cnn_lr_1":"SST5"})
 
     x_axis_time = False
     data, avg_time = get_data(data_name)
@@ -305,14 +305,14 @@ def plot_section1(plot_errorbar, x_axis_time):
     f, axes = plt.subplots(2, 1, figsize=(10,14))
 
 
-    one_plot(data["sst5_cnn_lr"][8544],
-             avg_time["sst5_cnn_lr"][8544],
+    one_plot(data["sst5_cnn_lr_1"][8544],
+             avg_time["sst5_cnn_lr_1"][8544],
              8544,
              axes[0],
              "SST5",
              0,
              xlim=[0, 50],
-             classifiers=['logistic regression', 'cnn'],
+             classifiers=['LR', 'CNN'],
              plot_errorbar=False,
              legend_loc='lower right',
              logx=False,
@@ -332,18 +332,18 @@ def plot_section1(plot_errorbar, x_axis_time):
     #          legend_loc='lower right',
     #          x_axis_time=x_axis_time)
 
-    one_plot(data["imdb_final"][20000],
-             avg_time["imdb_final"][20000],
-             20000,
-             axes[1],
-             "IMDB",
-             0,
-             logx=True,
-             classifiers=['logistic regression', 'lstm'],
-             plot_errorbar=plot_errorbar,
-             legend_loc='lower right',
-             fontsize=24,
-             x_axis_time=True)
+    # one_plot(data["imdb_final"][20000],
+    #          avg_time["imdb_final"][20000],
+    #          20000,
+    #          axes[1],
+    #          "IMDB",
+    #          0,
+    #          logx=True,
+    #          classifiers=['logistic regression', 'lstm'],
+    #          plot_errorbar=plot_errorbar,
+    #          legend_loc='lower right',
+    #          fontsize=24,
+    #          x_axis_time=True)
 
     classifiers = get_classifiers(data[list(data.keys())[0]])
     save_plot(data_name, data[list(data.keys())[0]].keys(), classifiers, True, plot_errorbar=args.plot_errorbar, x_axis_time=args.x_axis_time)
@@ -854,4 +854,7 @@ if __name__ == "__main__":
     parser.add_argument("--x_axis_time", action='store_true', default=True)
     parser.add_argument("--plot_errorbar", action='store_true', default=False)
     args = parser.parse_args()
+    plot_section1(**vars(args))
     plot_section3(**vars(args))
+    plot_section3_bcn(**vars(args))
+    plot_section3_bidaf(**vars(args))

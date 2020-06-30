@@ -1,0 +1,2 @@
+penalty	C	solver	tol	random_state	accuracy	training_duration	ngram_range	weight	stopwords	dataset_reader.sample	model.encoder.architecture.type
+l2	0.129	liblinear	0.000135691	47582	0.40361990950226245	1.3545160293579102	[1, 2]	binary		8544	logistic regression

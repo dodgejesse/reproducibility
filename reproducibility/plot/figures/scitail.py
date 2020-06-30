@@ -11,6 +11,8 @@ class SciTail(Plotter):
             f"{self.root}/scitail_3_search.tsv": {
                 "linestyle": "-",
                 "logx": True,
+                "markers": [">", "o", "X", "s"],
+                "markersize": 10,
                 "encoder_name": None,
                 'sep': '\t',
                 "performance_metric": "accuracy",
@@ -20,7 +22,7 @@ class SciTail(Plotter):
                 'model_field': 'model.encoder.architecture.type',
                 'lr_field': 'trainer.optimizer.lr',
                 "plot_errorbar": False,
-                "legend_loc": 'lower right',
+                "legend_loc": 'upper left',
                 "x_axis_time": False,
                 "linewidth": 3,
                 "relabel_logx_scalar": [5, 10, 50, 100],

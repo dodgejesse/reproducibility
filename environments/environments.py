@@ -139,7 +139,7 @@ CLASSIFIER_LSTM_SEARCH = {
 CLASSIFIER_CNN_SEARCH = {
         "LAZY_DATASET_READER": 0,
         "CUDA_DEVICE": 0,
-        "EVALUATE_ON_TEST": 0,
+        "EVALUATE_ON_TEST": 1,
         "NUM_EPOCHS": 50,
         "SEED": RandomSearch.random_integer(0, 100),
         "DATA_DIR": DATA_DIR,
